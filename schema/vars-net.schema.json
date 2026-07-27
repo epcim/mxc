@@ -1,0 +1,137 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": {
+        "lb_pool": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+                "interfaces": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "range": {
+                    "type": "string",
+                    "description": "IP range (e.g., 172.31.2.32-172.31.2.63)"
+                },
+                "vlan": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "range"
+            ]
+        },
+        "vip": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "dns": {
+                    "type": "string",
+                    "description": "DNS hostname"
+                },
+                "pool": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "address"
+            ]
+        },
+        "vlan": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+                "gateway": {
+                    "type": "string"
+                },
+                "id": {
+                    "description": "VLAN ID (0 = untagged/native)",
+                    "allOf": [
+                        {
+                            "type": "number"
+                        },
+                        {
+                            "type": "integer",
+                            "maximum": 4094,
+                            "minimum": 0
+                        }
+                    ]
+                },
+                "subnet": {
+                    "type": "string",
+                    "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+/[0-9]+$"
+                }
+            },
+            "required": [
+                "id",
+                "subnet"
+            ]
+        }
+    },
+    "type": "object",
+    "description": "Network Configuration\n\nNetwork/IPAM configuration for cluster - NetBox compatible",
+    "additionalProperties": true,
+    "properties": {
+        "network": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+                "dns": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "properties": {
+                        "search": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "servers": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "lb_pools": {
+                    "type": "object",
+                    "description": "LoadBalancer IP pools (MetalLB)",
+                    "additionalProperties": {
+                        "$ref": "#/$defs/lb_pool"
+                    }
+                },
+                "location": {
+                    "type": "string",
+                    "description": "Geographic location"
+                },
+                "site": {
+                    "type": "string",
+                    "description": "Site/location identifier"
+                },
+                "vips": {
+                    "type": "object",
+                    "description": "VIP allocations",
+                    "additionalProperties": {
+                        "$ref": "#/$defs/vip"
+                    }
+                },
+                "vlans": {
+                    "type": "object",
+                    "description": "VLAN definitions",
+                    "additionalProperties": {
+                        "$ref": "#/$defs/vlan"
+                    }
+                }
+            },
+            "required": [
+                "vips"
+            ]
+        }
+    }
+}

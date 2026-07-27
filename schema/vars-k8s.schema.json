@@ -1,0 +1,107 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "description": "Kubernetes Cluster Configuration\n\nKubernetes platform configuration for cluster",
+    "additionalProperties": true,
+    "properties": {
+        "kube": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+                "env": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "properties": {
+                        "TZ": {
+                            "type": "string",
+                            "description": "Timezone"
+                        }
+                    }
+                },
+                "ingress": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "properties": {
+                        "annotations": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        },
+                        "class": {
+                            "type": "string",
+                            "description": "Default ingress class"
+                        }
+                    },
+                    "required": [
+                        "class"
+                    ]
+                },
+                "namespaces": {
+                    "type": "array",
+                    "description": "Namespaces to create",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "networking": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "properties": {
+                        "pod_cidr": {
+                            "type": "string",
+                            "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+/[0-9]+$"
+                        },
+                        "service_cidr": {
+                            "type": "string",
+                            "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+/[0-9]+$"
+                        }
+                    }
+                },
+                "storage": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "properties": {
+                        "backup": {
+                            "type": "string",
+                            "description": "Backup storage class"
+                        },
+                        "default": {
+                            "type": "string",
+                            "description": "Default storage class"
+                        },
+                        "local": {
+                            "type": "string",
+                            "description": "Local storage class"
+                        },
+                        "performance": {
+                            "type": "string",
+                            "description": "Performance storage class"
+                        }
+                    },
+                    "required": [
+                        "default"
+                    ]
+                },
+                "type": {
+                    "description": "Kubernetes distribution type",
+                    "enum": [
+                        "microk8s",
+                        "k3s",
+                        "talos",
+                        "eks",
+                        "gke",
+                        "aks",
+                        "kind",
+                        "kwok"
+                    ]
+                }
+            },
+            "required": [
+                "ingress",
+                "storage",
+                "type"
+            ]
+        }
+    }
+}

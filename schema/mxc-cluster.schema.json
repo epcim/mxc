@@ -1,0 +1,1407 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": {
+        "AppCore": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "appName": {
+                    "type": "string"
+                },
+                "context": {
+                    "type": "object",
+                    "description": "Extensible helm-values context block passed direct to template/kluctl",
+                    "additionalProperties": true
+                },
+                "expose": {
+                    "type": "object",
+                    "description": "Declarative Exposure Rules: keys must strictly match keys in 'ports'",
+                    "additionalProperties": true
+                },
+                "image": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "repository": {
+                            "type": "string"
+                        },
+                        "tag": {
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "repository",
+                        "tag"
+                    ]
+                },
+                "k0rdent": {
+                    "type": "object",
+                    "description": "Escape hatch for Mirantis K0rdent service configurations",
+                    "additionalProperties": false,
+                    "properties": {
+                        "serviceSpec": {
+                            "type": "object",
+                            "additionalProperties": true
+                        },
+                        "template": {
+                            "type": "string"
+                        },
+                        "values": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                },
+                "kustomize": {
+                    "description": "Dynamic kustomize context mappings matching full upstream schemas",
+                    "$ref": "#/$defs/Kustomization"
+                },
+                "ports": {
+                    "type": "object",
+                    "description": "Kubernetes Service Spec style ports",
+                    "additionalProperties": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "port": {
+                                "type": "integer"
+                            }
+                        },
+                        "$ref": "#/$defs/PortSpec"
+                    }
+                },
+                "storage": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/$defs/VolumeSpec"
+                    }
+                },
+                "tags": {
+                    "type": "array",
+                    "description": "Logical tags for stack/feature grouping and cascading (k8s labels & Kluctl tags)",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            },
+            "required": [
+                "appName",
+                "image"
+            ]
+        },
+        "ConfigMapArgs": {
+            "type": "object",
+            "description": "ConfigMapArgs contains the metadata of how to generate a configmap",
+            "additionalProperties": false,
+            "properties": {
+                "KVSources": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/KVSource"
+                    }
+                },
+                "behavior": {
+                    "enum": [
+                        "create",
+                        "replace",
+                        "merge"
+                    ]
+                },
+                "env": {
+                    "type": "string",
+                    "description": "Deprecated. Use envs instead."
+                },
+                "envs": {
+                    "type": "array",
+                    "description": "A list of file paths. The contents of each file should be one key=value pair per line",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "files": {
+                    "type": "array",
+                    "description": "A list of file sources to use in creating a list of key, value pairs",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "literals": {
+                    "type": "array",
+                    "description": "A list of literal pair sources. Each literal source should be a key and\nliteral value, e.g. `key=value`",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "name": {
+                    "type": "string",
+                    "description": "Name - actually the partial name - of the generated resource"
+                },
+                "namespace": {
+                    "type": "string",
+                    "description": "Namespace for the configmap, optional"
+                },
+                "options": {
+                    "$ref": "#/$defs/GeneratorOptions"
+                }
+            }
+        },
+        "FieldSelector": {
+            "type": "object",
+            "description": "Contains the fieldPath to an object field",
+            "additionalProperties": false,
+            "properties": {
+                "fieldpath": {
+                    "type": "string"
+                }
+            }
+        },
+        "FieldSpec": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+                "create": {
+                    "type": "boolean"
+                },
+                "group": {
+                    "type": "string"
+                },
+                "kind": {
+                    "type": "string"
+                },
+                "path": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "string"
+                }
+            }
+        },
+        "GeneratorOptions": {
+            "type": "object",
+            "description": "GeneratorOptions modify behavior of all ConfigMap and Secret generators",
+            "additionalProperties": false,
+            "properties": {
+                "annotations": {
+                    "type": "object",
+                    "description": "Annotations to add to all generated resources",
+                    "additionalProperties": true,
+                    "patternProperties": {
+                        ".*": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "disableNameSuffixHash": {
+                    "type": "boolean",
+                    "description": "DisableNameSuffixHash if true disables the default behavior of adding a\nsuffix to the names of generated resources that is a hash of the resource\ncontents"
+                },
+                "immutable": {
+                    "type": "boolean",
+                    "description": "Immutable if true add to all generated resources"
+                },
+                "labels": {
+                    "type": "object",
+                    "description": "Labels to add to all generated resources",
+                    "additionalProperties": true,
+                    "patternProperties": {
+                        ".*": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "HelmChart": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "additionalValuesFiles": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "apiVersions": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "includeCRDs": {
+                    "type": "boolean"
+                },
+                "kubeVersion": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "nameTemplate": {
+                    "type": "string"
+                },
+                "namespace": {
+                    "type": "string"
+                },
+                "releaseName": {
+                    "type": "string"
+                },
+                "repo": {
+                    "type": "string"
+                },
+                "skipHooks": {
+                    "type": "boolean"
+                },
+                "skipTests": {
+                    "type": "boolean"
+                },
+                "valuesFile": {
+                    "type": "string"
+                },
+                "valuesInline": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "patternProperties": {
+                        ".*": {
+                            "const": {}
+                        }
+                    }
+                },
+                "valuesMerge": {
+                    "enum": [
+                        "merge",
+                        "override",
+                        "replace"
+                    ]
+                },
+                "version": {
+                    "type": "string"
+                }
+            }
+        },
+        "Image": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "digest": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "newName": {
+                    "type": "string"
+                },
+                "newTag": {
+                    "type": "string"
+                },
+                "tagSuffix": {
+                    "type": "string",
+                    "description": "UNDOCUMENTED."
+                }
+            }
+        },
+        "Inventory": {
+            "type": "object",
+            "description": "Inventory appends an object that contains the record of all other objects,\nwhich can be used in apply, prune and delete",
+            "additionalProperties": false,
+            "properties": {
+                "configMap": {
+                    "$ref": "#/$defs/NameArgs"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "KVSource": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "args": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "pluginType": {
+                    "type": "string"
+                }
+            }
+        },
+        "Kustomization": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "apiVersion": {
+                    "type": "string"
+                },
+                "bases": {
+                    "type": "array",
+                    "description": "DEPRECATED. Bases are relative paths or git repository URLs specifying a\ndirectory containing a kustomization.yaml file.",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "buildMetadata": {
+                    "type": "array",
+                    "description": "BuildMetadata is a list of strings used to toggle different build options",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "commonAnnotations": {
+                    "type": "object",
+                    "description": "CommonAnnotations to add to all objects",
+                    "additionalProperties": true,
+                    "patternProperties": {
+                        ".*": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "commonLabels": {
+                    "type": "object",
+                    "description": "CommonLabels to add to all objects and selectors",
+                    "additionalProperties": true,
+                    "patternProperties": {
+                        ".*": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "components": {
+                    "type": "array",
+                    "description": "Components are relative paths or git repository URLs specifying a directory\ncontaining a kustomization.yaml file of Kind Component.",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "configMapGenerator": {
+                    "type": "array",
+                    "description": "ConfigMapGenerator is a list of configmaps to generate from local data (one\nconfigMap per list item)",
+                    "items": {
+                        "$ref": "#/$defs/ConfigMapArgs"
+                    }
+                },
+                "configurations": {
+                    "type": "array",
+                    "description": "Configurations is a list of transformer configuration files",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "crds": {
+                    "type": "array",
+                    "description": "Crds specifies relative paths to Custom Resource Definition files. This\nallows custom resources to be recognized as operands, making it possible to\nadd them to the Resources list. CRDs themselves are not modified.",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "generatorOptions": {
+                    "$ref": "#/$defs/GeneratorOptions"
+                },
+                "generators": {
+                    "type": "array",
+                    "description": "Generators is a list of files containing custom generators",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "helmCharts": {
+                    "type": "array",
+                    "description": "HelmCharts is a list of helm chart configuration instances",
+                    "items": {
+                        "$ref": "#/$defs/HelmChart"
+                    }
+                },
+                "helmGlobals": {
+                    "type": "object",
+                    "description": "HelmGlobals contains helm configuration that isn't chart specific",
+                    "additionalProperties": false,
+                    "properties": {
+                        "chartHome": {
+                            "type": "string",
+                            "description": "ChartHome is a file path, relative to the kustomization root, to a directory\ncontaining a subdirectory for each chart to be included in the kustomization"
+                        },
+                        "configHome": {
+                            "type": "string",
+                            "description": "ConfigHome defines a value that kustomize should pass to helm via the\nHELM_CONFIG_HOME environment variable"
+                        }
+                    }
+                },
+                "images": {
+                    "type": "array",
+                    "description": "Images is a list of (image name, new name, new tag or digest) for changing\nimage names, tags or digests. This can also be achieved with a patch, but\nthis operator is simpler to specify.",
+                    "items": {
+                        "$ref": "#/$defs/Image"
+                    }
+                },
+                "inventory": {
+                    "$ref": "#/$defs/Inventory"
+                },
+                "kind": {
+                    "type": "string"
+                },
+                "labels": {
+                    "type": "array",
+                    "description": "Labels to add to all objects but not selectors",
+                    "items": {
+                        "$ref": "#/$defs/Labels"
+                    }
+                },
+                "metadata": {
+                    "description": "Contains metadata about a Resource",
+                    "$ref": "#/$defs/Metadata"
+                },
+                "namePrefix": {
+                    "type": "string",
+                    "description": "NamePrefix will prefix the names of all resources mentioned in the\nkustomization file including generated configmaps and secrets"
+                },
+                "nameSuffix": {
+                    "type": "string",
+                    "description": "NameSuffix will suffix the names of all resources mentioned in the\nkustomization file including generated configmaps and secrets"
+                },
+                "namespace": {
+                    "type": "string",
+                    "description": "Namespace to add to all objects"
+                },
+                "openapi": {
+                    "type": "object",
+                    "description": "OpenAPI contains information about what kubernetes schema to use",
+                    "additionalProperties": true,
+                    "patternProperties": {
+                        ".*": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "patches": {
+                    "type": "array",
+                    "description": "Apply a patch to multiple resources",
+                    "items": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/$defs/PatchesPatchPath"
+                            },
+                            {
+                                "$ref": "#/$defs/PatchesInlinePatch"
+                            }
+                        ]
+                    }
+                },
+                "patchesJson6902": {
+                    "type": "array",
+                    "description": "JSONPatches is a list of JSONPatch for applying JSON patch. See http://jsonpatch.com",
+                    "items": {
+                        "$ref": "#/$defs/PatchJson6902"
+                    }
+                },
+                "patchesStrategicMerge": {
+                    "type": "array",
+                    "description": "PatchesStrategicMerge specifies the relative path to a file containing a\nstrategic merge patch. URLs and globs are not supported",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "replacements": {
+                    "type": "array",
+                    "description": "Substitute field(s) in N target(s) with a field from a source",
+                    "items": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/$defs/ReplacementsPath"
+                            },
+                            {
+                                "$ref": "#/$defs/ReplacementsInline"
+                            }
+                        ]
+                    }
+                },
+                "replicas": {
+                    "type": "array",
+                    "description": "Replicas is a list of (resource name, count) for changing number of replicas\nfor a resources. It will match any group and kind that has a matching name\nand that is one of: Deployment, ReplicationController, Replicaset,\nStatefulset.",
+                    "items": {
+                        "$ref": "#/$defs/Replicas"
+                    }
+                },
+                "resources": {
+                    "type": "array",
+                    "description": "Resources specifies relative paths to files holding YAML representations of\nkubernetes API objects. URLs and globs not supported.",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "secretGenerator": {
+                    "type": "array",
+                    "description": "SecretGenerator is a list of secrets to generate from local data (one secret per list item)",
+                    "items": {
+                        "$ref": "#/$defs/SecretArgs"
+                    }
+                },
+                "sortOptions": {
+                    "description": "sortOptions is used to sort the resources kustomize outputs",
+                    "oneOf": [
+                        {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                                "legacySortOptions": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "orderFirst": {
+                                            "type": "array"
+                                        },
+                                        "orderLast": {
+                                            "type": "array"
+                                        }
+                                    }
+                                },
+                                "order": {
+                                    "const": "legacy"
+                                }
+                            }
+                        },
+                        {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                                "order": {
+                                    "const": "fifo"
+                                }
+                            }
+                        }
+                    ]
+                },
+                "transformers": {
+                    "type": "array",
+                    "description": "Transformers is a list of files containing transformers",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "validators": {
+                    "type": "array",
+                    "description": "Validators is a list of files containing validators",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "vars": {
+                    "type": "array",
+                    "description": "Allows things modified by kustomize to be injected into a container\nspecification. A var is a name (e.g. FOO) associated with a field in a\nspecific resource instance. The field must contain a value of type string,\nand defaults to the name field of the instance",
+                    "items": {
+                        "$ref": "#/$defs/Var"
+                    }
+                }
+            }
+        },
+        "Labels": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "fields": {
+                    "type": "array",
+                    "description": "FieldSpec completely specifies a kustomizable field in a k8s API object. It\nhelps define the operands of transformations",
+                    "items": {
+                        "$ref": "#/$defs/FieldSpec"
+                    }
+                },
+                "includeSelectors": {
+                    "type": "boolean",
+                    "description": "IncludeSelectors indicates should transformer include the fieldSpecs for selectors"
+                },
+                "includeTemplates": {
+                    "type": "boolean",
+                    "description": "IncludeTemplates indicates should transformer include the template labels"
+                },
+                "pairs": {
+                    "type": "object",
+                    "description": "Pairs contains the key-value pairs for labels to add",
+                    "additionalProperties": true,
+                    "patternProperties": {
+                        ".*": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "Metadata": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "annotations": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "patternProperties": {
+                        ".*": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "labels": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "patternProperties": {
+                        ".*": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "namespace": {
+                    "type": "string"
+                }
+            }
+        },
+        "NameArgs": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "namespace": {
+                    "type": "string"
+                }
+            }
+        },
+        "PatchJson6902": {
+            "oneOf": [
+                {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "path": {
+                            "type": "string",
+                            "description": "relative file path for a json patch file inside a kustomization"
+                        },
+                        "target": {
+                            "description": "Refers to a Kubernetes object that the json patch will be applied to. It must\nrefer to a Kubernetes resource under the purview of this kustomization",
+                            "$ref": "#/$defs/PatchTarget"
+                        }
+                    },
+                    "required": [
+                        "path",
+                        "target"
+                    ]
+                },
+                {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "patch": {
+                            "type": "string",
+                            "description": "inline json patch"
+                        },
+                        "target": {
+                            "description": "Refers to a Kubernetes object that the json patch will be applied to. It must\nrefer to a Kubernetes resource under the purview of this kustomization",
+                            "$ref": "#/$defs/PatchTarget"
+                        }
+                    },
+                    "required": [
+                        "patch",
+                        "target"
+                    ]
+                },
+                {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "from": {
+                            "type": "string",
+                            "description": "The source location."
+                        },
+                        "op": {
+                            "description": "The operation",
+                            "enum": [
+                                "add",
+                                "remove",
+                                "replace",
+                                "move",
+                                "copy",
+                                "test"
+                            ]
+                        },
+                        "path": {
+                            "type": "string",
+                            "description": "The target location."
+                        },
+                        "value": {
+                            "oneOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "required": [
+                        "op",
+                        "path"
+                    ]
+                }
+            ]
+        },
+        "PatchTarget": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "group": {
+                    "type": "string"
+                },
+                "kind": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "namespace": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "kind",
+                "name",
+                "version"
+            ]
+        },
+        "PatchesInlinePatch": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "options": {
+                    "$ref": "#/$defs/PatchesOptions"
+                },
+                "patch": {
+                    "type": "string"
+                },
+                "target": {
+                    "description": "Refers to a Kubernetes object that the patch will be applied to. It must\nrefer to a Kubernetes resource under the purview of this kustomization",
+                    "$ref": "#/$defs/Selector"
+                }
+            },
+            "required": [
+                "patch"
+            ]
+        },
+        "PatchesOptions": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "allowKindChange": {
+                    "type": "boolean"
+                },
+                "allowNameChange": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "PatchesPatchPath": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "options": {
+                    "$ref": "#/$defs/PatchesOptions"
+                },
+                "path": {
+                    "type": "string"
+                },
+                "target": {
+                    "description": "Refers to a Kubernetes object that the patch will be applied to. It must\nrefer to a Kubernetes resource under the purview of this kustomization",
+                    "$ref": "#/$defs/Selector"
+                }
+            },
+            "required": [
+                "path"
+            ]
+        },
+        "PortSpec": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "port": {
+                    "allOf": [
+                        {
+                            "type": "number"
+                        },
+                        {
+                            "type": "integer",
+                            "maximum": 65535,
+                            "minimum": 1
+                        }
+                    ]
+                },
+                "protocol": {
+                    "enum": [
+                        "TCP",
+                        "UDP"
+                    ]
+                }
+            },
+            "required": [
+                "port"
+            ]
+        },
+        "ReplacementsInline": {
+            "oneOf": [
+                {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "source": {
+                            "$ref": "#/$defs/ReplacementsSource"
+                        },
+                        "targets": {
+                            "type": "array",
+                            "description": "The N fields to write the value to",
+                            "items": {
+                                "$ref": "#/$defs/ReplacementsTarget"
+                            }
+                        }
+                    },
+                    "required": [
+                        "source",
+                        "targets"
+                    ]
+                },
+                {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "sourceValue": {
+                            "type": "string",
+                            "description": "A scalar value as source"
+                        },
+                        "targets": {
+                            "type": "array",
+                            "description": "The N fields to write the value to",
+                            "items": {
+                                "$ref": "#/$defs/ReplacementsTarget"
+                            }
+                        }
+                    },
+                    "required": [
+                        "sourceValue",
+                        "targets"
+                    ]
+                }
+            ]
+        },
+        "ReplacementsPath": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "path": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "path"
+            ]
+        },
+        "ReplacementsSource": {
+            "type": "object",
+            "description": "The source of the value",
+            "additionalProperties": true,
+            "properties": {
+                "fieldPath": {
+                    "type": "string",
+                    "description": "The structured path to the source value"
+                },
+                "group": {
+                    "type": "string",
+                    "description": "The group of the referent"
+                },
+                "kind": {
+                    "type": "string",
+                    "description": "The kind of the referent"
+                },
+                "name": {
+                    "type": "string",
+                    "description": "The name of the referent"
+                },
+                "namespace": {
+                    "type": "string",
+                    "description": "The namespace of the referent"
+                },
+                "options": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "properties": {
+                        "create": {
+                            "type": "boolean"
+                        },
+                        "delimiter": {
+                            "type": "string"
+                        },
+                        "index": {
+                            "type": "number"
+                        }
+                    }
+                },
+                "version": {
+                    "type": "string",
+                    "description": "The version of the referent"
+                }
+            }
+        },
+        "ReplacementsTarget": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+                "fieldPaths": {
+                    "type": "array",
+                    "description": "The structured path(s) to the target nodes",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "options": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "properties": {
+                        "create": {
+                            "type": "boolean"
+                        },
+                        "delimiter": {
+                            "type": "string"
+                        },
+                        "index": {
+                            "type": "number"
+                        }
+                    }
+                },
+                "reject": {
+                    "type": "array",
+                    "description": "Exclude objects that match this",
+                    "items": {
+                        "$ref": "#/$defs/Selector"
+                    }
+                },
+                "select": {
+                    "description": "Include objects that match this",
+                    "$ref": "#/$defs/Selector"
+                }
+            },
+            "required": [
+                "select"
+            ]
+        },
+        "Replicas": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "count": {
+                    "type": "number"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "SecretArgs": {
+            "type": "object",
+            "description": "SecretArgs contains the metadata of how to generate a secret",
+            "additionalProperties": false,
+            "properties": {
+                "KVSources": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/KVSource"
+                    }
+                },
+                "behavior": {
+                    "enum": [
+                        "create",
+                        "replace",
+                        "merge"
+                    ]
+                },
+                "env": {
+                    "type": "string"
+                },
+                "envs": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "files": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "literals": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "name": {
+                    "type": "string",
+                    "description": "Name - actually the partial name - of the generated resource"
+                },
+                "namespace": {
+                    "type": "string",
+                    "description": "Namespace for the secret, optional"
+                },
+                "options": {
+                    "$ref": "#/$defs/GeneratorOptions"
+                },
+                "type": {
+                    "type": "string",
+                    "description": "Type of the secret, optional"
+                }
+            }
+        },
+        "Selector": {
+            "type": "object",
+            "description": "Selector specifies a set of resources.\nAny resource that matches intersection of all conditions is included in this set.",
+            "additionalProperties": false,
+            "properties": {
+                "annotationSelector": {
+                    "type": "string",
+                    "description": "AnnotationSelector is a string that follows the label selection expression\nhttps://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#api"
+                },
+                "group": {
+                    "type": "string",
+                    "description": "The group of the referent"
+                },
+                "kind": {
+                    "type": "string",
+                    "description": "The kind of the referent"
+                },
+                "labelSelector": {
+                    "type": "string",
+                    "description": "LabelSelector is a string that follows the label selection expression\nhttps://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#api"
+                },
+                "name": {
+                    "type": "string",
+                    "description": "The name of the referent"
+                },
+                "namespace": {
+                    "type": "string",
+                    "description": "The namespace of the referent"
+                },
+                "version": {
+                    "type": "string",
+                    "description": "The version of the referent"
+                }
+            }
+        },
+        "Target": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "apiVersion": {
+                    "type": "string"
+                },
+                "group": {
+                    "type": "string"
+                },
+                "kind": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "namespace": {
+                    "type": "string",
+                    "description": "UNDOCUMENTED."
+                },
+                "version": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "name"
+            ]
+        },
+        "Var": {
+            "type": "object",
+            "description": "Represents a variable whose value will be sourced from a field in a Kubernetes object.",
+            "additionalProperties": false,
+            "properties": {
+                "fieldref": {
+                    "description": "Refers to the field of the object referred to by objref whose value will be\nextracted for use in replacing $(FOO)",
+                    "$ref": "#/$defs/FieldSelector"
+                },
+                "name": {
+                    "type": "string",
+                    "description": "Value of identifier name e.g. FOO used in container args, annotations,\nAppears in pod template as $(FOO)"
+                },
+                "objref": {
+                    "description": "Refers to a Kubernetes resource under the purview of this kustomization",
+                    "$ref": "#/$defs/Target"
+                }
+            },
+            "required": [
+                "name",
+                "objref"
+            ]
+        },
+        "VolumeSpec": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "class": {
+                    "type": "string"
+                },
+                "size": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "size"
+            ]
+        },
+        "lb_pool": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+                "interfaces": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "range": {
+                    "type": "string",
+                    "description": "IP range (e.g., 172.31.2.32-172.31.2.63)"
+                },
+                "vlan": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "range"
+            ]
+        },
+        "vip": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "dns": {
+                    "type": "string",
+                    "description": "DNS hostname"
+                },
+                "pool": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "address"
+            ]
+        },
+        "vlan": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+                "gateway": {
+                    "type": "string"
+                },
+                "id": {
+                    "description": "VLAN ID (0 = untagged/native)",
+                    "allOf": [
+                        {
+                            "type": "number"
+                        },
+                        {
+                            "type": "integer",
+                            "maximum": 4094,
+                            "minimum": 0
+                        }
+                    ]
+                },
+                "subnet": {
+                    "type": "string",
+                    "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+/[0-9]+$"
+                }
+            },
+            "required": [
+                "id",
+                "subnet"
+            ]
+        }
+    },
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "apps": {
+            "type": "object",
+            "description": "Grouped application specifications by category/group (e.g., example, games, infra, etc.)",
+            "additionalProperties": {
+                "type": "object",
+                "additionalProperties": {
+                    "$ref": "#/$defs/AppCore"
+                }
+            }
+        },
+        "clusterName": {
+            "type": "string"
+        },
+        "environment": {
+            "enum": [
+                "production",
+                "staging",
+                "development"
+            ]
+        },
+        "kube": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "env": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "TZ": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "ingress": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "annotations": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        },
+                        "class": {
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "class"
+                    ]
+                },
+                "namespaces": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "storage": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "backup": {
+                            "type": "string"
+                        },
+                        "default": {
+                            "type": "string"
+                        },
+                        "local": {
+                            "type": "string"
+                        },
+                        "performance": {
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "default"
+                    ]
+                },
+                "type": {
+                    "enum": [
+                        "microk8s",
+                        "k3s",
+                        "talos",
+                        "eks",
+                        "gke",
+                        "aks",
+                        "kind",
+                        "kwok"
+                    ]
+                }
+            },
+            "required": [
+                "ingress",
+                "storage",
+                "type"
+            ]
+        },
+        "network": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "dns": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "search": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "servers": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "domain": {
+                    "type": "string"
+                },
+                "lb_pools": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/$defs/lb_pool"
+                    }
+                },
+                "location": {
+                    "type": "string"
+                },
+                "site": {
+                    "type": "string"
+                },
+                "vips": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/$defs/vip"
+                    }
+                },
+                "vlans": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/$defs/vlan"
+                    }
+                }
+            },
+            "required": [
+                "domain"
+            ]
+        }
+    },
+    "required": [
+        "clusterName",
+        "environment",
+        "kube",
+        "network"
+    ]
+}

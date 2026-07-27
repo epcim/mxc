@@ -1,0 +1,15 @@
+version: "3.8"
+services:
+  web:
+    image: nginx:latest
+    ports:
+      - "80:80"
+    environment:
+      - NGINX_PORT=80
+    volumes:
+      - web-data:/usr/share/nginx/html
+    deploy:
+      replicas: 2
+
+volumes:
+  web-data:
