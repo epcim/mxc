@@ -32,6 +32,20 @@ package schema
 		[string]: _
 	}
 
+	// Reference(s) to the values-schema governing `context`'s shape: a `#`-prefixed
+	// token resolves against mxc's own internal/bundled schema registry (e.g.
+	// "#app-template" for the generic bjw-s app-template chart); a URL scheme
+	// resolves externally via the per-stack vendor+validate pipeline. As a list,
+	// entries are tried in order — first one that resolves wins.
+	contextSchema?: string | [...string]
+
+	// Declared secret contract: key names this app expects, defaulting to the
+	// established Jinja placeholder convention ("{{ secrets.<app>.<key> }}"),
+	// resolved by Kluctl/SOPS at apply-time. A real value may unify this away
+	// once resolved by an external decrypt step ahead of compilation — see
+	// AGENTS.md "Secrets Resolution Strategy".
+	secrets?: [string]: string
+
 	// Escape hatch for Mirantis K0rdent service configurations
 	k0rdent?: {
 		serviceSpec?: {
@@ -48,12 +62,31 @@ package schema
 
 	storage?: [string]: #VolumeSpec
 
+	// Application-specific templates or custom overlays configuration
+	overlays?: {
+		[string]: _
+	}
+
 	// Simplified Resources and Sizing Flavors
 	replicaCount?: int
 	flavor?:       string
 
-	// Explicitly define the packaging/deployment format of this application
-	deployment?: "bjw-s" | "app-template" | "kluctl" | "kustomize" | "k0rdent"
+	// Explicitly define which adapter renders this app's k8s-appliable manifest
+	// set. "app-template" is NOT a deployment value: the generic bjw-s chart is
+	// still rendered by kluctl like any other chart — use deployment: "kluctl"
+	// with contextSchema: "#app-template" to select it (see AD-020).
+	// Required: no safe implicit default exists across adapters, so an omission
+	// must fail cue vet.
+	deployment: "kluctl" | "kustomize" | "k0rdent" | "argocd"
+
+	// Extensible helm chart properties for native helm deployments
+	helmChart?: #HelmChartSpec
+
+	// Optional rollout restart cronjob configuration
+	restart?: #RestartSpec
+
+	// Optional Stakater Reloader annotations configuration
+	reloader?: #ReloaderSpec
 }
 
 #PortSpec: {
@@ -100,3 +133,22 @@ package schema
 		limits:   { cpu: "4", memory: "4Gi" }
 	}
 }
+
+
+#RestartSpec: {
+	schedule: string
+	targetKind: "Deployment" | "StatefulSet" | "DaemonSet" | *"Deployment"
+	targetName?: string
+}
+
+#ReloaderSpec: {
+	// Auto-detect and reload on any referenced ConfigMap or Secret changes
+	auto?: bool | *false
+	// Watch specific ConfigMaps
+	configmaps: [...string] | *[]
+	// Watch specific Secrets
+	secrets: [...string] | *[]
+}
+
+
+

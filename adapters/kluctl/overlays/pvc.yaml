@@ -1,0 +1,16 @@
+{% for item in get_var('overlays.pvc', []) %}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ item.name }}
+  labels:
+    app: {{ helmChart.releaseName }}
+spec:
+  accessModes:
+  - {{ item.accessMode | default("ReadWriteOnce") }}
+  resources:
+    requests:
+      storage: {{ item.size | default("1Gi") }}
+  storageClassName: {{ item.storageClass | default("longhorn") }}
+{% endfor %}

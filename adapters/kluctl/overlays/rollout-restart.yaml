@@ -1,0 +1,68 @@
+# vim: ft=yaml syntax=yaml sts=2 ts=2 sw=2
+{% if restart is defined %}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ appName }}-restart-sa
+  namespace: {{ kustomize.namespace }}
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ appName }}-restart-role
+  namespace: {{ kustomize.namespace }}
+rules:
+  - apiGroups: ["apps"]
+    resources:
+      - deployments
+      - statefulsets
+      - daemonsets
+    resourceNames:
+      - {{ restart.targetName }}
+    verbs:
+      - get
+      - patch
+      - update
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ appName }}-restart-rb
+  namespace: {{ kustomize.namespace }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ appName }}-restart-sa
+    namespace: {{ kustomize.namespace }}
+roleRef:
+  kind: Role
+  name: {{ appName }}-restart-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ appName }}-restart
+  namespace: {{ kustomize.namespace }}
+spec:
+  schedule: "{{ restart.schedule }}"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: {{ appName }}-restart-sa
+          restartPolicy: OnFailure
+          containers:
+            - name: kubectl
+              image: bitnami/kubectl:1.31.0
+              command:
+                - /bin/sh
+                - -c
+                - "kubectl rollout restart {{ restart.targetKind | lower }}/{{ restart.targetName }}"
+{% endif %}

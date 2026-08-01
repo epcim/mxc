@@ -57,7 +57,7 @@ The adapter will loop over the VLAN portfolio and generate Terraform resources f
 ```cue
 package proxmox_adapter
 
-import "github.com/epcim/gitops-infra/mxc/schema"
+import "github.com/epcim/mxc/schema"
 
 // Receives central network config
 #InputNetwork: schema.#NetworkConfig
@@ -108,7 +108,7 @@ The adapter projects CUE networks and VLANs into UniFi Controller Network resour
 ```cue
 package unifi_adapter
 
-import "github.com/epcim/gitops-infra/mxc/schema"
+import "github.com/epcim/mxc/schema"
 
 #InputNetwork: schema.#NetworkConfig
 

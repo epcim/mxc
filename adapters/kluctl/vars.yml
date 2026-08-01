@@ -1,0 +1,140 @@
+template:
+  contracts:
+    ingress:
+      traefik:
+        className: traefik
+        annotations:
+          traefik.ingress.kubernetes.io/router.entrypoints: websecure
+          traefik.ingress.kubernetes.io/router.tls: "true"
+          traefik.ingress.kubernetes.io/preserve-host: "true"
+      nginx:
+        className: nginx
+        annotations:
+          nginx.ingress.kubernetes.io/ssl-redirect: "true"
+          nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    storage:
+      default: longhorn
+      performance: longhorn-performance
+      backup: longhorn-backup
+      local: local-path
+
+  helm:
+    bjws:
+      app_template:
+        v1_3:
+          context:
+            env:
+              TZ: Europe/Prague
+            probes:
+              liveness:
+                enabled: true
+              readiness:
+                enabled: false
+              startup:
+                enabled: false
+          helmChart:
+            repo: https://bjw-s-labs.github.io/helm-charts
+            chartName: app-template
+            chartVersion: 1.3.2
+            skipCRDs: false
+            skipPrePull: true
+        v4_x:
+          context:
+            defaultPodOptions:
+              automountServiceAccountToken: false
+            controllers:
+              main:
+                containers:
+                  main:
+                    env:
+                      TZ: Europe/Prague
+                    probes:
+                      liveness:
+                        enabled: true
+                      readiness:
+                        enabled: true
+                      startup:
+                        enabled: false
+            ingress:
+              main:
+                enabled: true
+                className: traefik
+                annotations:
+                  traefik.ingress.kubernetes.io/router.entrypoints: websecure
+                  traefik.ingress.kubernetes.io/router.tls: "true"
+          helmChart:
+            repo: https://bjw-s-labs.github.io/helm-charts
+            chartName: app-template
+            chartVersion: 4.6.2
+            skipCRDs: false
+            skipPrePull: true
+          kustomize:
+            resources:
+            - helm-rendered.yaml
+            - overlays/pvc.yaml
+
+  kustomize:
+    common:
+      commonLabels:
+        environment: "{{ target.name }}"
+      commonAnnotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/scheme: "http"
+      generatorOptions:
+        disableNameSuffixHash: true
+
+flavors:
+  _base:
+    minimum:
+      resources:
+        requests:
+          cpu: 5m
+          memory: 32Mi
+        limits:
+          cpu: 100m
+          memory: 128Mi
+    test:
+      resources:
+        requests:
+          cpu: 25m
+          memory: 64Mi
+    prod:
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+  adguard:
+    minimum:
+      resources:
+        requests:
+          cpu: 50m
+          memory: 200Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  octoprint:
+    minimum:
+      resources:
+        requests:
+          cpu: 50m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  netbird-gw:
+    minimum:
+      resources:
+        requests:
+          cpu: 10m
+          memory: 32Mi
+        limits:
+          cpu: 100m
+          memory: 64Mi
+
+overlays: {}
+secrets: {}
+context: {}
+kustomize:
+  generatorOptions:
+    disableNameSuffixHash: true
+helmChart: {}

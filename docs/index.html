@@ -1,0 +1,1354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Model-X Configuration (MXC) - A declarative, type-safe, and compile-time-validated platform configuration engine using CUE.">
+    <title>Model-X Configuration (MXC) | Declarative Type-Safe GitOps</title>
+    <!-- Modern Premium Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Premium Code Syntax Highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --surface-color: rgba(17, 24, 39, 0.7);
+            --surface-border: rgba(255, 255, 255, 0.08);
+            --text-primary: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --text-muted: #6b7280;
+            --primary-gradient: linear-gradient(135deg, #6366f1, #a855f7);
+            --primary-color: #6366f1;
+            --accent-emerald: #10b981;
+            --accent-sunset: #f97316;
+            --accent-rust: #ef4444;
+            --accent-rust-gradient: linear-gradient(135deg, #f97316, #ef4444);
+            --glow-shadow: 0 0 30px rgba(99, 102, 241, 0.15);
+            --font-main: 'Outfit', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            line-height: 1.6;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Abstract glowing background blobs */
+        body::before {
+            content: '';
+            position: absolute;
+            top: -10%;
+            left: -10%;
+            width: 50vw;
+            height: 50vw;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, rgba(0,0,0,0) 70%);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        body::after {
+            content: '';
+            position: absolute;
+            bottom: 10%;
+            right: -10%;
+            width: 40vw;
+            height: 40vw;
+            background: radial-gradient(circle, rgba(168, 85, 247, 0.08) 0%, rgba(0,0,0,0) 70%);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        /* Container & Grid Limits */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            position: relative;
+        }
+
+        /* Navigation Header */
+        header {
+            padding: 1.5rem 0;
+            border-bottom: 1px solid var(--surface-border);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(11, 15, 25, 0.8);
+        }
+
+        .nav-wrapper {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo-group {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+            color: var(--text-primary);
+            font-weight: 700;
+            font-size: 1.25rem;
+            letter-spacing: -0.025em;
+        }
+
+        .logo-symbol {
+            width: 2.25rem;
+            height: 2.25rem;
+            background: var(--primary-gradient);
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 800;
+            font-size: 1.1rem;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        nav {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        nav a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: var(--transition-smooth);
+        }
+
+        nav a:hover {
+            color: var(--text-primary);
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-github {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--surface-border);
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            color: var(--text-primary);
+            font-weight: 500;
+            font-size: 0.875rem;
+            transition: var(--transition-smooth);
+        }
+
+        .btn-github:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-1px);
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 6rem 0 4rem;
+            text-align: center;
+        }
+
+        .badge {
+            display: inline-block;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            color: #818cf8;
+            padding: 0.35rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            line-height: 1.15;
+            letter-spacing: -0.03em;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(to right, #ffffff, #9ca3af);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero h1 span {
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            max-width: 700px;
+            margin: 0 auto 2.5rem;
+            font-weight: 300;
+        }
+
+        .hero-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        .btn-primary {
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            padding: 0.85rem 2rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+            transition: var(--transition-smooth);
+            text-decoration: none;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5), var(--glow-shadow);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--surface-border);
+            color: var(--text-primary);
+            padding: 0.85rem 2rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            text-decoration: none;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+        }
+
+        /* Features Section */
+        .section-title {
+            text-align: center;
+            margin-bottom: 3.5rem;
+        }
+
+        .section-title h2 {
+            font-size: 2.25rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            letter-spacing: -0.02em;
+        }
+
+        .section-title p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 0 auto;
+            font-weight: 300;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2rem;
+            margin-bottom: 5rem;
+        }
+
+        .feature-card {
+            background: var(--surface-color);
+            border: 1px solid var(--surface-border);
+            border-radius: 1rem;
+            padding: 2.5rem 2rem;
+            transition: var(--transition-smooth);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(99, 102, 241, 0.3);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2), 0 0 20px rgba(99, 102, 241, 0.05);
+        }
+
+        .feature-icon {
+            width: 3rem;
+            height: 3rem;
+            border-radius: 0.75rem;
+            background: rgba(99, 102, 241, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary-color);
+            font-size: 1.5rem;
+            border: 1px solid rgba(99, 102, 241, 0.15);
+        }
+
+        .feature-card.emerald .feature-icon {
+            color: var(--accent-emerald);
+            background: rgba(16, 185, 129, 0.1);
+            border-color: rgba(16, 185, 129, 0.15);
+        }
+
+        .feature-card.sunset .feature-icon {
+            color: var(--accent-sunset);
+            background: rgba(249, 115, 22, 0.1);
+            border-color: rgba(249, 115, 22, 0.15);
+        }
+
+        .feature-card h3 {
+            font-size: 1.35rem;
+            font-weight: 600;
+        }
+
+        .feature-card p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.5;
+            font-weight: 300;
+        }
+
+        /* Core Philosophy Banner */
+        .philosophy-banner {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(168, 85, 247, 0.03) 100%);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: 1.5rem;
+            padding: 3.5rem;
+            text-align: center;
+            margin-bottom: 6rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .philosophy-banner h3 {
+            font-size: 1.25rem;
+            color: var(--primary-color);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 1rem;
+        }
+
+        .philosophy-banner blockquote {
+            font-size: 1.85rem;
+            font-weight: 700;
+            line-height: 1.3;
+            max-width: 850px;
+            margin: 0 auto 1.5rem;
+            letter-spacing: -0.02em;
+            color: white;
+        }
+
+        .philosophy-banner p {
+            color: var(--text-secondary);
+            max-width: 700px;
+            margin: 0 auto;
+            font-weight: 300;
+        }
+
+        /* Code Playground / Live Compilation Demo */
+        .playground-section {
+            background: var(--surface-color);
+            border: 1px solid var(--surface-border);
+            border-radius: 1.5rem;
+            padding: 3rem;
+            margin-bottom: 6rem;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        .playground-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--surface-border);
+            padding-bottom: 1.5rem;
+        }
+
+        .playground-desc h3 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .playground-desc p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            font-weight: 300;
+        }
+
+        .tab-group {
+            display: flex;
+            gap: 0.5rem;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0.25rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--surface-border);
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            padding: 0.5rem 1.25rem;
+            border-radius: 0.35rem;
+            font-family: var(--font-main);
+            font-weight: 500;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+        }
+
+        .tab-btn.active {
+            background: var(--primary-gradient);
+            color: white;
+            box-shadow: 0 2px 10px rgba(99, 102, 241, 0.25);
+        }
+
+        .demo-window {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            height: 480px;
+        }
+
+        @media (max-width: 900px) {
+            .demo-window {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+        }
+
+        .code-panel {
+            background: rgba(5, 7, 13, 0.9);
+            border: 1px solid var(--surface-border);
+            border-radius: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 0.75rem 1.25rem;
+            border-bottom: 1px solid var(--surface-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-title {
+            font-family: var(--font-main);
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .panel-title::before {
+            content: '';
+            width: 0.5rem;
+            height: 0.5rem;
+            border-radius: 50%;
+            background: var(--primary-color);
+        }
+
+        .panel-title.green::before { background: var(--accent-emerald); }
+
+        .panel-copy {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: var(--transition-smooth);
+        }
+
+        .panel-copy:hover {
+            color: var(--text-primary);
+        }
+
+        .panel-body {
+            flex-grow: 1;
+            padding: 1.25rem;
+            overflow: auto;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            line-height: 1.5;
+            position: relative;
+        }
+
+        /* Remove default prism shadows/paddings */
+        .panel-body pre {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: none !important;
+            border: none !important;
+            box-shadow: none !important;
+            height: 100%;
+        }
+
+        .panel-body code {
+            font-family: var(--font-mono) !important;
+        }
+
+        /* Lattice Theory Section */
+        .lattice-section {
+            margin-bottom: 6rem;
+        }
+
+        .lattice-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 3rem;
+            align-items: center;
+        }
+
+        @media (max-width: 900px) {
+            .lattice-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .lattice-viz-card {
+            background: var(--surface-color);
+            border: 1px solid var(--surface-border);
+            border-radius: 1.5rem;
+            padding: 2.5rem;
+            text-align: center;
+            position: relative;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            overflow: hidden;
+        }
+
+        .lattice-interactive {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            margin: 2rem 0;
+            padding: 1.5rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 1rem;
+            border: 1px solid var(--surface-border);
+        }
+
+        .lattice-inputs {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            width: 100%;
+        }
+
+        .lattice-select {
+            flex: 1;
+            background: rgba(11, 15, 25, 0.9);
+            border: 1px solid var(--surface-border);
+            color: var(--text-primary);
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            font-family: var(--font-main);
+            font-size: 0.9rem;
+            cursor: pointer;
+            outline: none;
+            transition: var(--transition-smooth);
+        }
+
+        .lattice-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 10px rgba(99, 102, 241, 0.2);
+        }
+
+        .lattice-operator {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+        }
+
+        .lattice-result-box {
+            width: 100%;
+            padding: 1.25rem;
+            border-radius: 0.5rem;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--surface-border);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            min-height: 90px;
+            transition: var(--transition-smooth);
+        }
+
+        .lattice-result-box.success {
+            border-color: rgba(16, 185, 129, 0.4);
+            background: rgba(16, 185, 129, 0.05);
+        }
+
+        .lattice-result-box.error {
+            border-color: rgba(239, 68, 68, 0.4);
+            background: rgba(239, 68, 68, 0.05);
+            animation: shake 0.3s ease-in-out;
+        }
+
+        .result-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+        }
+
+        .result-value {
+            font-family: var(--font-mono);
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .result-value.success {
+            color: var(--accent-emerald);
+        }
+
+        .result-value.error {
+            color: var(--accent-rust);
+            font-size: 1.5rem;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        /* Documentation & Quick Start Tabs */
+        .docs-section {
+            background: var(--surface-color);
+            border: 1px solid var(--surface-border);
+            border-radius: 1.5rem;
+            padding: 3rem;
+            margin-bottom: 6rem;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        .quickstart-panel {
+            background: rgba(5, 7, 13, 0.9);
+            border: 1px solid var(--surface-border);
+            border-radius: 0.75rem;
+            padding: 1.5rem 2rem;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            overflow-x: auto;
+            position: relative;
+            margin-top: 1.5rem;
+        }
+
+        .quickstart-panel code {
+            color: #f3f4f6;
+        }
+
+        .quickstart-panel .comment {
+            color: var(--text-muted);
+        }
+
+        .quickstart-panel .command {
+            color: #818cf8;
+        }
+
+        .docs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1.5rem;
+            margin-top: 3rem;
+        }
+
+        .doc-link-card {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--surface-border);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            text-decoration: none;
+            color: var(--text-primary);
+            transition: var(--transition-smooth);
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .doc-link-card:hover {
+            border-color: var(--primary-color);
+            background: rgba(99, 102, 241, 0.05);
+            transform: translateY(-2px);
+        }
+
+        .doc-link-card h4 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .doc-link-card h4::after {
+            content: '→';
+            font-size: 1.1rem;
+            color: var(--primary-color);
+            transition: var(--transition-smooth);
+        }
+
+        .doc-link-card:hover h4::after {
+            transform: translateX(3px);
+        }
+
+        .doc-link-card p {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            font-weight: 300;
+            line-height: 1.4;
+        }
+
+        /* Footer */
+        footer {
+            border-top: 1px solid var(--surface-border);
+            padding: 4rem 0;
+            background: rgba(5, 7, 13, 0.8);
+            font-weight: 300;
+        }
+
+        .footer-wrapper {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 2rem;
+        }
+
+        .footer-logo-desc {
+            max-width: 400px;
+        }
+
+        .footer-logo-desc p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-top: 1rem;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 3rem;
+        }
+
+        .footer-column {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .footer-column h5 {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .footer-column a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: var(--transition-smooth);
+        }
+
+        .footer-column a:hover {
+            color: var(--text-primary);
+        }
+
+        .copyright {
+            width: 100%;
+            text-align: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            margin-top: 3rem;
+            padding-top: 2rem;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        /* Responsive styling corrections */
+        @media (max-width: 600px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+            .hero p {
+                font-size: 1.1rem;
+            }
+            .playground-section {
+                padding: 1.5rem;
+            }
+            .philosophy-banner {
+                padding: 2rem;
+            }
+            .philosophy-banner blockquote {
+                font-size: 1.35rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <header>
+        <div class="container nav-wrapper">
+            <a href="#" class="logo-group" id="nav-logo">
+                <div class="logo-symbol">M</div>
+                <span>MXC Platform</span>
+            </a>
+            <nav id="main-nav">
+                <a href="#features">Features</a>
+                <a href="#playground">Playground</a>
+                <a href="#lattice">Lattice Theory</a>
+                <a href="#docs">Docs</a>
+                <a href="https://github.com/epcim/mxc" class="btn-github">
+                    <svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+                    </svg>
+                    Source Code
+                </a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container">
+
+        <!-- Hero Section -->
+        <section class="hero">
+            <span class="badge">Offline & Type-Safe</span>
+            <h1>The Compiler sits upstream of <span>your Deployer</span></h1>
+            <p>Model-X Configuration (MXC) is a declarative, compile-time-validated platform configuration engine built on CUE. It decouples developer logical intent from actual cluster manifest orchestration.</p>
+            <div class="hero-buttons">
+                <a href="#playground" class="btn-primary" id="btn-hero-play">Interactive Demo</a>
+                <a href="#docs" class="btn-secondary" id="btn-hero-docs">Quick Start & Docs</a>
+            </div>
+        </section>
+
+        <!-- Core Philosophy Banner -->
+        <section class="philosophy-banner">
+            <h3>Our Core Axiom</h3>
+            <blockquote>"Application configuration will never be unified.<br>Deployment configuration must be."</blockquote>
+            <p>Every application carries structurally unique requirements (GPUs, network sockets, sidecars). Instead of writing brittle string-replacement YAML templates, MXC defines uniform, validated constraints and compiles them down to target layouts.</p>
+        </section>
+
+        <!-- Features Grid -->
+        <section id="features" style="padding-top: 4rem;">
+            <div class="section-title">
+                <h2>Engine Architecture</h2>
+                <p>Designed to provide robust mathematical safety, high-fidelity platform targets, and a dry-run local developer workflow.</p>
+            </div>
+            
+            <div class="features-grid">
+                <!-- Card 1 -->
+                <div class="feature-card">
+                    <div class="feature-icon">🛡️</div>
+                    <h3>Type-Safe Validation</h3>
+                    <p>Powered by CUE, MXC catches configuration typos, missing parameters, and wrong port types at compilation time before anything reaches your Kubernetes cluster.</p>
+                </div>
+                <!-- Card 2 -->
+                <div class="feature-card emerald">
+                    <div class="feature-icon">📦</div>
+                    <h3>Standalone-Ready</h3>
+                    <p>MXC compiles and runs 100% offline with zero external downloads. Basic setups are completely self-contained, perfect for air-gapped, thin, or bootstrap clusters.</p>
+                </div>
+                <!-- Card 3 -->
+                <div class="feature-card sunset">
+                    <div class="feature-icon">✨</div>
+                    <h3>Unified Projection</h3>
+                    <p>A single declarative structure maps to your choice of engine. We project to Kluctl, direct raw Kustomize patches, or Mirantis K0rdent escape hatches uniformly.</p>
+                </div>
+                <!-- Card 4 -->
+                <div class="feature-card sunset">
+                    <div class="feature-icon">🔒</div>
+                    <h3>Zero Leakage Secrets</h3>
+                    <p>All plain-text passwords and credentials remain strictly out of compiled metadata. Secrets are held as safe Jinja placeholders, fully deferred to SOPS-encrypted runtime boundaries.</p>
+                </div>
+                <!-- Card 5 -->
+                <div class="feature-card">
+                    <div class="feature-icon">🧬</div>
+                    <h3>Scoped Sizing Defaults</h3>
+                    <p>Sizing flavors (nano, small, prod) merge natively via CUE's alias unification maps inside individual stacks, leaving core adapters simple, thin, and abstract.</p>
+                </div>
+                <!-- Card 6 -->
+                <div class="feature-card emerald">
+                    <div class="feature-icon">🔌</div>
+                    <h3>CUE Overlays</h3>
+                    <p>Inject complete, verified custom Kubernetes resources (IngressRoutes, Middlewares) directly inside single-file .cue sheets without maintaining legacy YAML overlay folders.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Interactive Playground -->
+        <section id="playground" class="playground-section">
+            <div class="playground-header">
+                <div class="playground-desc">
+                    <h3>Logical Projection Playground</h3>
+                    <p>Select a scenario to witness how high-level abstract CUE parameters project down into flat deployer-friendly parameters.</p>
+                </div>
+                <div class="tab-group" id="scenario-tabs">
+                    <button class="tab-btn active" data-scenario="hajimari" id="tab-hajimari">Custom Overlays</button>
+                    <button class="tab-btn" data-scenario="flavors" id="tab-flavors">Sizing Flavors</button>
+                    <button class="tab-btn" data-scenario="k0rdent" id="tab-k0rdent">K0rdent Escape-Hatch</button>
+                </div>
+            </div>
+
+            <div class="demo-window">
+                <!-- Left: CUE Intent -->
+                <div class="code-panel">
+                    <div class="panel-header">
+                        <span class="panel-title">Logical Developer Intent (CUE)</span>
+                        <span class="panel-copy" id="copy-cue">Copy</span>
+                    </div>
+                    <div class="panel-body">
+                        <pre><code class="language-cue" id="cue-code-block">// Loading...</code></pre>
+                    </div>
+                </div>
+
+                <!-- Right: Compiled YAML Parameters -->
+                <div class="code-panel">
+                    <div class="panel-header">
+                        <span class="panel-title green">Projected Kluctl Parameters (YAML)</span>
+                        <span class="panel-copy" id="copy-yaml">Copy</span>
+                    </div>
+                    <div class="panel-body">
+                        <pre><code class="language-yaml" id="yaml-code-block"># Loading...</code></pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Lattice Theory Interactive -->
+        <section id="lattice" class="lattice-section">
+            <div class="section-title">
+                <h2>The Mathematics of Validation</h2>
+                <p>Unlike scripting engines, CUE compiles configurations using Order Theory and Lattices. Conflicting specifications collapse immediately into Bottom (⊥).</p>
+            </div>
+
+            <div class="lattice-grid">
+                <!-- Explainer -->
+                <div>
+                    <h3 style="font-size: 1.5rem; margin-bottom: 1.5rem;">The Lattice Theory Concept</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 1.5rem; font-weight: 300;">In CUE, schemas and concrete parameters occupy the same mathematically ordered space. The top element <code>_</code> (Top ⊤) matches any value, while concrete values form leaves on the tree.
+                    <br><br>
+                    When two fields unify using the <code>&</code> operator, CUE computes the Greatest Lower Bound. If their specifications conflict (e.g. attempting to define a CPU limit as both an integer and a string), the operation collapses into <strong>Bottom (⊥)</strong>, throwing a type-error instantly during compilation.</p>
+                    <ul style="color: var(--text-secondary); list-style-position: inside; display: flex; flex-direction: column; gap: 0.75rem; font-weight: 300;">
+                        <li><strong>Top (⊤)</strong>: Unconstrained field (written as <code>_</code>)</li>
+                        <li><strong>Unification (&)</strong>: Merges constraints and parameters</li>
+                        <li><strong>Disjunction (|)</strong>: Standard enums / Choice constraints</li>
+                        <li><strong>Bottom (⊥)</strong>: Turned-T error representing structural conflicts</li>
+                    </ul>
+                </div>
+
+                <!-- Interactive Widget -->
+                <div class="lattice-viz-card">
+                    <h4 style="font-size: 1.25rem; font-weight: 600;">Lattice Unification Sandbox</h4>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">Select left and right parameters to test compiler evaluation.</p>
+                    
+                    <div class="lattice-interactive">
+                        <div class="lattice-inputs">
+                            <select class="lattice-select" id="lattice-left" aria-label="Left Lattice Operand">
+                                <option value="any">Top ( _ )</option>
+                                <option value="string">string</option>
+                                <option value="int">int</option>
+                                <option value="prod">"prod"</option>
+                                <option value="dev">"dev"</option>
+                            </select>
+                            <span class="lattice-operator">&</span>
+                            <select class="lattice-select" id="lattice-right" aria-label="Right Lattice Operand">
+                                <option value="any">Top ( _ )</option>
+                                <option value="string">string</option>
+                                <option value="dev">"dev"</option>
+                                <option value="test">"test"</option>
+                                <option value="int_val">42</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="lattice-result-box success" id="lattice-result">
+                        <span class="result-label">Compilation Result</span>
+                        <span class="result-value success" id="lattice-result-value">Top ( _ )</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Documentation & Quickstart -->
+        <section id="docs" class="docs-section">
+            <div class="section-title">
+                <h2>Quick Start & Documentation</h2>
+                <p>Run commands directly inside the <code>mxc/</code> context using the parameterizable task namespace.</p>
+            </div>
+
+            <div class="quickstart-panel">
+                <code><span class="comment"># 1. Validate all schemas and values against type constraints</span>
+<span class="command">just mxc::validate</span>
+
+<span class="comment"># 2. Compile and output flat parameters (vars.yml) to stdout for a specific cluster</span>
+<span class="command">just mxc::export cluster-home-mxc</span>
+
+<span class="comment"># 3. Generate Editor Autocompletion Schemas (JSON Schema)</span>
+<span class="command">just mxc::schema-export</span></code>
+            </div>
+
+            <div class="docs-grid">
+                <!-- Link 1 -->
+                <a href="CUE_EXPERT_GUIDANCE.md" class="doc-link-card">
+                    <h4>CUE Expert Guidance</h4>
+                    <p>Learn advanced authoring patterns, avoiding the optional evaluation trap, and managing closed index signatures.</p>
+                </a>
+                <!-- Link 2 -->
+                <a href="mxc_blog_post.md" class="doc-link-card">
+                    <h4>Blog Post & Deep Dive</h4>
+                    <p>Read our full-length technical architecture article detailing the 13 concrete CUE design patterns used in MXC.</p>
+                </a>
+                <!-- Link 3 -->
+                <a href="overview_slides.md" class="doc-link-card">
+                    <h4>Marp Slideshow</h4>
+                    <p>A slide-deck overview presenting the core problem, structural bases directory symmetry, and OCI packaging goals.</p>
+                </a>
+                <!-- Link 4 -->
+                <a href="https://epcim.github.io/mxc-library" class="doc-link-card" style="border-color: rgba(16, 185, 129, 0.3); background: rgba(16, 185, 129, 0.02);">
+                    <h4 style="color: #10b981;">Live Workload Catalog</h4>
+                    <p>Browse the ready-to-deploy systems planes (Monitoring, VPN, Databases, CI/CD, Storage) and learn about multi-library compositions.</p>
+                </a>
+                <!-- Link 5 -->
+                <a href="stack_library_spec.md" class="doc-link-card">
+                    <h4>Stack Library Spec</h4>
+                    <p>Internal specification rules for building reusable production-grade workload planes inside the library catalog.</p>
+                </a>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container footer-wrapper">
+            <div class="footer-logo-desc">
+                <a href="#" class="logo-group">
+                    <div class="logo-symbol">M</div>
+                    <span>MXC Platform</span>
+                </a>
+                <p>An advanced type-safe infrastructure orchestration engine decoupling intents from implementations. Built for robust declarative GitOps.</p>
+            </div>
+            <div class="footer-links">
+                <div class="footer-column">
+                    <h5>Resources</h5>
+                    <a href="https://github.com/epcim/mxc/blob/main/README.md">Main README</a>
+                    <a href="https://github.com/epcim/mxc/blob/main/TODO.md">Future Roadmap</a>
+                    <a href="CUE_EXPERT_GUIDANCE.md">Expert Guidance</a>
+                </div>
+                <div class="footer-column">
+                    <h5>Platform</h5>
+                    <a href="#features">Features</a>
+                    <a href="#playground">Playground</a>
+                    <a href="#lattice">Mathematics</a>
+                </div>
+            </div>
+            <div class="copyright">
+                <p>&copy; 2026 Model-X Configuration (MXC) Project. Created with CUE and modern GitOps principles.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-yaml.min.js"></script>
+    <!-- Simple CUE custom syntax highlighter injector -->
+    <script>
+        Prism.languages.cue = {
+            'comment': /\/\/.*|#.*/,
+            'string': {
+                pattern: /"(?:\\(?:\r\n|[\s\S])|[^"\\\r\n])*"|"""[\s\S]*?"""/,
+                greedy: true
+            },
+            'keyword': /\b(?:package|import|let|if|for|in|struct|list)\b/,
+            'boolean': /\b(?:true|false)\b/,
+            'number': /\b\d+(?:\.\d+)?(?:[eE][+-]?\d+)?\b/,
+            'operator': /[&|]/,
+            'punctuation': /[{}[\];(),.:]/
+        };
+    </script>
+    <script>
+        // Interactive Playground Scenarios Data
+        const scenarios = {
+            hajimari: {
+                cue: `// apps.cue
+hajimari: {
+    appName: "hajimari"
+    image: {
+        repository: "ghcr.io/tobiasboothe/hajimari"
+        tag:        "v1.0.0"
+    }
+    ports: http: port: 80
+    expose: http: target: "ingress"
+    reloader: auto: true
+    
+    // Inline type-safe Kubernetes Overlay
+    kustomize: {
+        overlays: [
+            {
+                apiVersion: "traefik.io/v1alpha1"
+                kind:       "Middleware"
+                metadata: name: "hajimari-headers"
+                spec: headers: {
+                    browserXssFilter: true
+                }
+            }
+        ]
+    }
+}`,
+                yaml: `# Compiled Parameters (vars.yml for Kluctl)
+apps:
+  hajimari:
+    appName: hajimari
+    image:
+      repository: ghcr.io/tobiasboothe/hajimari
+      tag: v1.0.0
+    ports:
+      http:
+        port: 80
+    expose:
+      http:
+        target: ingress
+        host: hajimari.cluster.example.com
+    reloader:
+      auto: true
+    kustomize:
+      overlays:
+        - apiVersion: traefik.io/v1alpha1
+          kind: Middleware
+          metadata:
+            name: hajimari-headers
+          spec:
+            headers:
+              browserXssFilter: true`
+            },
+            flavors: {
+                cue: `// schema/k8s.cue - Scoped Merges (S.flavor)
+#KluctlController: S=schema.#AppCore & {
+    _flavor: {
+        small: { 
+            context: controller_resources: limits: { 
+                cpu: "1", memory: "512Mi" 
+            } 
+        }
+        medium: { 
+            context: controller_resources: limits: { 
+                cpu: "2", memory: "1Gi" 
+            } 
+        }
+    }
+    flavor: "small" | *"medium"
+    
+    // Dynamic Self-Unification based on flavor tag
+    _flavor[S.flavor]
+}
+
+// Environment Override
+controller: #KluctlController & {
+    appName: "kluctl-agent"
+    flavor:  "small"
+}`,
+                yaml: `# Compiled Sizing Outputs
+flavor: small
+appName: kluctl-agent
+context:
+  controller_resources:
+    limits:
+      cpu: "1"
+      memory: 512Mi`
+            },
+            k0rdent: {
+                cue: `// apps.cue - Mirantis K0rdent escape hatch
+n8n: {
+    appName: "n8n"
+    image: {
+        repository: "docker.n8n.io/n8nio/n8n"
+        tag:        "latest"
+    }
+    ports: http: port: 5678
+    expose: http: target: "ingress"
+    
+    // Optional Pass-through mapping directly to K0rdent Spec
+    k0rdent: {
+        template: "n8n-standard"
+        values: {
+            database: {
+                type: "postgres"
+                host: "postgres-svc"
+            }
+        }
+        serviceSpec: {
+            serviceName: "n8n"
+            deployment:  "multicluster"
+        }
+    }
+}`,
+                yaml: `# Output variables for K0rdent Integration
+appName: n8n
+image:
+  repository: docker.n8n.io/n8nio/n8n
+  tag: latest
+ports:
+  http:
+    port: 5678
+expose:
+  http:
+    target: ingress
+k0rdent:
+  template: n8n-standard
+  values:
+    database:
+      type: postgres
+      host: postgres-svc
+  serviceSpec:
+    serviceName: n8n
+    deployment: multicluster`
+            }
+        };
+
+        // DOM elements
+        const cueCodeBlock = document.getElementById('cue-code-block');
+        const yamlCodeBlock = document.getElementById('yaml-code-block');
+        const tabs = document.querySelectorAll('#scenario-tabs .tab-btn');
+        const copyCue = document.getElementById('copy-cue');
+        const copyYaml = document.getElementById('copy-yaml');
+
+        // Render scenario content
+        function selectScenario(scenarioKey) {
+            const data = scenarios[scenarioKey];
+            if (!data) return;
+
+            cueCodeBlock.textContent = data.cue.trim();
+            yamlCodeBlock.textContent = data.yaml.trim();
+
+            // Re-highlight
+            Prism.highlightElement(cueCodeBlock);
+            Prism.highlightElement(yamlCodeBlock);
+        }
+
+        // Tab click handling
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                selectScenario(tab.dataset.scenario);
+            });
+        });
+
+        // Copy buttons
+        copyCue.addEventListener('click', () => {
+            navigator.clipboard.writeText(cueCodeBlock.textContent);
+            copyCue.textContent = 'Copied!';
+            setTimeout(() => { copyCue.textContent = 'Copy'; }, 2000);
+        });
+
+        copyYaml.addEventListener('click', () => {
+            navigator.clipboard.writeText(yamlCodeBlock.textContent);
+            copyYaml.textContent = 'Copied!';
+            setTimeout(() => { copyYaml.textContent = 'Copy'; }, 2000);
+        });
+
+        // Initialize first scenario
+        selectScenario('hajimari');
+
+        // Lattice Sandbox Logic
+        const leftSelect = document.getElementById('lattice-left');
+        const rightSelect = document.getElementById('lattice-right');
+        const resultBox = document.getElementById('lattice-result');
+        const resultValue = document.getElementById('lattice-result-value');
+
+        function evaluateLattice() {
+            const left = leftSelect.value;
+            const right = rightSelect.value;
+            
+            resultBox.classList.remove('success', 'error');
+
+            // Bottom rules (⊥)
+            if (
+                (left === 'int' && right === 'string') ||
+                (left === 'int' && right === 'dev') ||
+                (left === 'int' && right === 'test') ||
+                (left === 'string' && right === 'int_val') ||
+                (left === 'prod' && right === 'dev') ||
+                (left === 'prod' && right === 'test') ||
+                (left === 'prod' && right === 'int_val') ||
+                (left === 'dev' && right === 'test') ||
+                (left === 'dev' && right === 'int_val')
+            ) {
+                // COLLAPSE TO BOTTOM!
+                resultBox.classList.add('error');
+                resultValue.textContent = 'Bottom ( ⊥ ) - Conflict Detected!';
+                resultValue.className = 'result-value error';
+            } else {
+                // Successful unification
+                resultBox.classList.add('success');
+                resultValue.className = 'result-value success';
+                
+                if (left === 'any') {
+                    if (right === 'any') resultValue.textContent = 'Top ( _ )';
+                    else if (right === 'int_val') resultValue.textContent = '42';
+                    else resultValue.textContent = right;
+                } else if (right === 'any') {
+                    resultValue.textContent = left;
+                } else if (left === 'string') {
+                    resultValue.textContent = right; // string & "dev" / "test" is "dev" / "test"
+                } else if (left === 'int' && right === 'int_val') {
+                    resultValue.textContent = '42';
+                } else if (left === right) {
+                    resultValue.textContent = left;
+                } else {
+                    resultValue.textContent = `${left} & ${right}`;
+                }
+            }
+        }
+
+        leftSelect.addEventListener('change', evaluateLattice);
+        rightSelect.addEventListener('change', evaluateLattice);
+        
+        // Initialize lattice Sandbox
+        evaluateLattice();
+    </script>
+</body>
+</html>

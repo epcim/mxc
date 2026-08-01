@@ -1,0 +1,4 @@
+{% for item in get_var('overlays.networkPolicies', []) %}
+---
+{{ item | to_yaml }}
+{% endfor %}

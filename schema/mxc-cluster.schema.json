@@ -1,6 +1,10 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$defs": {
+        "#Time": {
+            "description": "Time is a wrapper around time.Time which supports correct\nmarshaling to YAML and JSON. Wrappers are provided for many of\nthe factory methods that the time package offers.",
+            "$ref": "#/$defs/Time"
+        },
         "AppCore": {
             "type": "object",
             "additionalProperties": false,
@@ -13,10 +17,27 @@
                     "description": "Extensible helm-values context block passed direct to template/kluctl",
                     "additionalProperties": true
                 },
+                "deployment": {
+                    "description": "Explicitly define the packaging/deployment format of this application",
+                    "enum": [
+                        "bjw-s",
+                        "app-template",
+                        "kluctl",
+                        "kustomize",
+                        "k0rdent"
+                    ]
+                },
                 "expose": {
                     "type": "object",
                     "description": "Declarative Exposure Rules: keys must strictly match keys in 'ports'",
                     "additionalProperties": true
+                },
+                "flavor": {
+                    "type": "string"
+                },
+                "helmChart": {
+                    "description": "Extensible helm chart properties for native helm deployments",
+                    "$ref": "#/$defs/HelmChartSpec"
                 },
                 "image": {
                     "type": "object",
@@ -56,6 +77,11 @@
                     "description": "Dynamic kustomize context mappings matching full upstream schemas",
                     "$ref": "#/$defs/Kustomization"
                 },
+                "overlays": {
+                    "type": "object",
+                    "description": "Application-specific templates or custom overlays configuration",
+                    "additionalProperties": true
+                },
                 "ports": {
                     "type": "object",
                     "description": "Kubernetes Service Spec style ports",
@@ -69,6 +95,18 @@
                         },
                         "$ref": "#/$defs/PortSpec"
                     }
+                },
+                "reloader": {
+                    "description": "Optional Stakater Reloader annotations configuration",
+                    "$ref": "#/$defs/ReloaderSpec"
+                },
+                "replicaCount": {
+                    "type": "integer",
+                    "description": "Simplified Resources and Sizing Flavors"
+                },
+                "restart": {
+                    "description": "Optional rollout restart cronjob configuration",
+                    "$ref": "#/$defs/RestartSpec"
                 },
                 "storage": {
                     "type": "object",
@@ -85,8 +123,7 @@
                 }
             },
             "required": [
-                "appName",
-                "image"
+                "appName"
             ]
         },
         "ConfigMapArgs": {
@@ -145,6 +182,24 @@
                 }
             }
         },
+        "DeployAlpha": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+                "apiVersion": {
+                    "type": "string"
+                },
+                "kind": {
+                    "type": "string"
+                },
+                "targets": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/$defs/TargetAlpha"
+                    }
+                }
+            }
+        },
         "FieldSelector": {
             "type": "object",
             "description": "Contains the fieldPath to an object field",
@@ -175,6 +230,10 @@
                     "type": "string"
                 }
             }
+        },
+        "FieldsV1": {
+            "description": "FieldsV1 stores a set of fields in a data structure like a\nTrie, in JSON format.\n\nEach key is either a '.' representing the field itself, and\nwill always map to an empty set, or a string representing a\nsub-field or item. The string will follow one of these four\nformats: 'f:<name>', where <name> is the name of a field in a\nstruct, or key in a map 'v:<value>', where <value> is the\nexact json formatted value of a list item 'i:<index>', where\n<index> is position of a item in a list 'k:<keys>', where\n<keys> is a map of a list item's key fields to their unique\nvalues If a key maps to an empty Fields value, the field that\nkey represents is part of the set.\n\nThe exact format is defined in\nsigs.k8s.io/structured-merge-diff",
+            "const": {}
         },
         "GeneratorOptions": {
             "type": "object",
@@ -278,6 +337,55 @@
                 }
             }
         },
+        "HelmChartSpec": {
+            "type": "object",
+            "description": "Kluctl Helm Chart specification matching the kluctl schema/structure",
+            "additionalProperties": false,
+            "properties": {
+                "chartName": {
+                    "type": "string"
+                },
+                "chartVersion": {
+                    "type": "string"
+                },
+                "namespace": {
+                    "type": "string"
+                },
+                "releaseName": {
+                    "type": "string"
+                },
+                "repo": {
+                    "type": "string"
+                },
+                "skipCRDs": {
+                    "type": "boolean"
+                },
+                "skipPrePull": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "IPBlock": {
+            "type": "object",
+            "description": "IPBlock describes a particular CIDR (Ex.\n\"192.168.1.0/24\",\"2001:db8::/64\") that is allowed to the pods\nmatched by a NetworkPolicySpec's podSelector. The except entry\ndescribes CIDRs that should not be included within this rule.",
+            "additionalProperties": false,
+            "properties": {
+                "cidr": {
+                    "type": "string",
+                    "description": "cidr is a string representing the IPBlock Valid examples are\n\"192.168.1.0/24\" or \"2001:db8::/64\""
+                },
+                "except": {
+                    "type": "array",
+                    "description": "except is a slice of CIDRs that should not be included within\nan IPBlock Valid examples are \"192.168.1.0/24\" or\n\"2001:db8::/64\" Except values will be rejected if they are\noutside the cidr range",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            },
+            "required": [
+                "cidr"
+            ]
+        },
         "Image": {
             "type": "object",
             "additionalProperties": false,
@@ -300,6 +408,17 @@
                 }
             }
         },
+        "IntOrString": {
+            "description": "IntOrString is a type that can hold an int32 or a string. When\nused in JSON or YAML marshalling and unmarshalling, it\nproduces or consumes the inner type. This allows you to have,\nfor example, a JSON field that can accept a name or number.",
+            "oneOf": [
+                {
+                    "type": "integer"
+                },
+                {
+                    "type": "string"
+                }
+            ]
+        },
         "Inventory": {
             "type": "object",
             "description": "Inventory appends an object that contains the record of all other objects,\nwhich can be used in apply, prune and delete",
@@ -312,6 +431,9 @@
                     "type": "string"
                 }
             }
+        },
+        "K8sNetworkPolicy": {
+            "$ref": "#/$defs/NetworkPolicy"
         },
         "KVSource": {
             "type": "object",
@@ -599,6 +721,53 @@
                 }
             }
         },
+        "LabelSelector": {
+            "type": "object",
+            "description": "A label selector is a label query over a set of resources. The\nresult of matchLabels and matchExpressions are ANDed. An empty\nlabel selector matches all objects. A null label selector\nmatches no objects.",
+            "additionalProperties": false,
+            "properties": {
+                "matchExpressions": {
+                    "type": "array",
+                    "description": "matchExpressions is a list of label selector requirements. The\nrequirements are ANDed.",
+                    "items": {
+                        "$ref": "#/$defs/LabelSelectorRequirement"
+                    }
+                },
+                "matchLabels": {
+                    "type": "object",
+                    "description": "matchLabels is a map of {key,value} pairs. A single {key,value}\nin the matchLabels map is equivalent to an element of\nmatchExpressions, whose key field is \"key\", the operator is\n\"In\", and the values array contains only \"value\". The\nrequirements are ANDed.",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "LabelSelectorRequirement": {
+            "type": "object",
+            "description": "A label selector requirement is a selector that contains\nvalues, a key, and an operator that relates the key and\nvalues.",
+            "additionalProperties": false,
+            "properties": {
+                "key": {
+                    "type": "string",
+                    "description": "key is the label key that the selector applies to."
+                },
+                "operator": {
+                    "type": "string",
+                    "description": "operator represents a key's relationship to a set of values.\nValid operators are In, NotIn, Exists and DoesNotExist."
+                },
+                "values": {
+                    "type": "array",
+                    "description": "values is an array of string values. If the operator is In or\nNotIn, the values array must be non-empty. If the operator is\nExists or DoesNotExist, the values array must be empty. This\narray is replaced during a strategic merge patch.",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            },
+            "required": [
+                "key",
+                "operator"
+            ]
+        },
         "Labels": {
             "type": "object",
             "additionalProperties": false,
@@ -627,6 +796,41 @@
                             "type": "string"
                         }
                     }
+                }
+            }
+        },
+        "ManagedFieldsEntry": {
+            "type": "object",
+            "description": "ManagedFieldsEntry is a workflow-id, a FieldSet and the group\nversion of the resource that the fieldset applies to.",
+            "additionalProperties": false,
+            "properties": {
+                "apiVersion": {
+                    "type": "string",
+                    "description": "APIVersion defines the version of this resource that this field\nset applies to. The format is \"group/version\" just like the\ntop-level APIVersion field. It is necessary to track the\nversion of a field set because it cannot be automatically\nconverted."
+                },
+                "fieldsType": {
+                    "type": "string",
+                    "description": "FieldsType is the discriminator for the different fields format\nand version. There is currently only one possible value:\n\"FieldsV1\""
+                },
+                "fieldsV1": {
+                    "description": "FieldsV1 holds the first JSON version format as described in\nthe \"FieldsV1\" type.",
+                    "$ref": "#/$defs/FieldsV1"
+                },
+                "manager": {
+                    "type": "string",
+                    "description": "Manager is an identifier of the workflow managing these fields."
+                },
+                "operation": {
+                    "type": "string",
+                    "description": "Operation is the type of operation which lead to this\nManagedFieldsEntry being created. The only valid values for\nthis field are 'Apply' and 'Update'."
+                },
+                "subresource": {
+                    "type": "string",
+                    "description": "Subresource is the name of the subresource used to update that\nobject, or empty string if the object was updated through the\nmain resource. The value of this field is used to distinguish\nbetween managers, even if they share the same name. For\nexample, a status update will be distinct from a regular\nupdate using the same manager name. Note that the APIVersion\nfield is not related to the Subresource field and it always\ncorresponds to the version of the main resource."
+                },
+                "time": {
+                    "description": "Time is the timestamp of when the ManagedFields entry was\nadded. The timestamp will also be updated if a field is added,\nthe manager changes any of the owned fields value or removes a\nfield. The timestamp does not update when a field is removed\nfrom the entry because another manager took it over.",
+                    "$ref": "#/$defs/%23Time"
                 }
             }
         },
@@ -671,6 +875,287 @@
                     "type": "string"
                 }
             }
+        },
+        "NetworkPolicy": {
+            "type": "object",
+            "description": "NetworkPolicy describes what network traffic is allowed for a\nset of Pods",
+            "additionalProperties": false,
+            "properties": {
+                "apiVersion": {
+                    "description": "APIVersion defines the versioned schema of this representation\nof an object. Servers should convert recognized schemas to the\nlatest internal value, and may reject unrecognized values.\nMore info:\nhttps://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+                    "const": "networking.k8s.io/v1"
+                },
+                "kind": {
+                    "description": "Kind is a string value representing the REST resource this\nobject represents. Servers may infer this from the endpoint\nthe client submits requests to. Cannot be updated. In\nCamelCase. More info:\nhttps://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+                    "const": "NetworkPolicy"
+                },
+                "metadata": {
+                    "description": "Standard object's metadata. More info:\nhttps://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
+                    "$ref": "#/$defs/ObjectMeta"
+                },
+                "spec": {
+                    "description": "spec represents the specification of the desired behavior for\nthis NetworkPolicy.",
+                    "$ref": "#/$defs/NetworkPolicySpec"
+                }
+            }
+        },
+        "NetworkPolicyEgressRule": {
+            "type": "object",
+            "description": "NetworkPolicyEgressRule describes a particular set of traffic\nthat is allowed out of pods matched by a NetworkPolicySpec's\npodSelector. The traffic must match both ports and to. This\ntype is beta-level in 1.8",
+            "additionalProperties": false,
+            "properties": {
+                "ports": {
+                    "type": "array",
+                    "description": "ports is a list of destination ports for outgoing traffic. Each\nitem in this list is combined using a logical OR. If this\nfield is empty or missing, this rule matches all ports\n(traffic not restricted by port). If this field is present and\ncontains at least one item, then this rule allows traffic only\nif the traffic matches at least one port in the list.",
+                    "items": {
+                        "$ref": "#/$defs/NetworkPolicyPort"
+                    }
+                },
+                "to": {
+                    "type": "array",
+                    "description": "to is a list of destinations for outgoing traffic of pods\nselected for this rule. Items in this list are combined using\na logical OR operation. If this field is empty or missing,\nthis rule matches all destinations (traffic not restricted by\ndestination). If this field is present and contains at least\none item, this rule allows traffic only if the traffic matches\nat least one item in the to list.",
+                    "items": {
+                        "$ref": "#/$defs/NetworkPolicyPeer"
+                    }
+                }
+            }
+        },
+        "NetworkPolicyIngressRule": {
+            "type": "object",
+            "description": "NetworkPolicyIngressRule describes a particular set of traffic\nthat is allowed to the pods matched by a NetworkPolicySpec's\npodSelector. The traffic must match both ports and from.",
+            "additionalProperties": false,
+            "properties": {
+                "from": {
+                    "type": "array",
+                    "description": "from is a list of sources which should be able to access the\npods selected for this rule. Items in this list are combined\nusing a logical OR operation. If this field is empty or\nmissing, this rule matches all sources (traffic not restricted\nby source). If this field is present and contains at least one\nitem, this rule allows traffic only if the traffic matches at\nleast one item in the from list.",
+                    "items": {
+                        "$ref": "#/$defs/NetworkPolicyPeer"
+                    }
+                },
+                "ports": {
+                    "type": "array",
+                    "description": "ports is a list of ports which should be made accessible on the\npods selected for this rule. Each item in this list is\ncombined using a logical OR. If this field is empty or\nmissing, this rule matches all ports (traffic not restricted\nby port). If this field is present and contains at least one\nitem, then this rule allows traffic only if the traffic\nmatches at least one port in the list.",
+                    "items": {
+                        "$ref": "#/$defs/NetworkPolicyPort"
+                    }
+                }
+            }
+        },
+        "NetworkPolicyPeer": {
+            "type": "object",
+            "description": "NetworkPolicyPeer describes a peer to allow traffic to/from.\nOnly certain combinations of fields are allowed",
+            "additionalProperties": false,
+            "properties": {
+                "ipBlock": {
+                    "description": "ipBlock defines policy on a particular IPBlock. If this field\nis set then neither of the other fields can be.",
+                    "$ref": "#/$defs/IPBlock"
+                },
+                "namespaceSelector": {
+                    "description": "namespaceSelector selects namespaces using cluster-scoped\nlabels. This field follows standard label selector semantics;\nif present but empty, it selects all namespaces.\n\nIf podSelector is also set, then the NetworkPolicyPeer as a\nwhole selects the pods matching podSelector in the namespaces\nselected by namespaceSelector. Otherwise it selects all pods\nin the namespaces selected by namespaceSelector.",
+                    "$ref": "#/$defs/LabelSelector"
+                },
+                "podSelector": {
+                    "description": "podSelector is a label selector which selects pods. This field\nfollows standard label selector semantics; if present but\nempty, it selects all pods.\n\nIf namespaceSelector is also set, then the NetworkPolicyPeer as\na whole selects the pods matching podSelector in the\nNamespaces selected by NamespaceSelector. Otherwise it selects\nthe pods matching podSelector in the policy's own namespace.",
+                    "$ref": "#/$defs/LabelSelector"
+                }
+            }
+        },
+        "NetworkPolicyPort": {
+            "type": "object",
+            "description": "NetworkPolicyPort describes a port to allow traffic on",
+            "additionalProperties": false,
+            "properties": {
+                "endPort": {
+                    "description": "endPort indicates that the range of ports from port to endPort\nif set, inclusive, should be allowed by the policy. This field\ncannot be defined if the port field is not defined or if the\nport field is defined as a named (string) port. The endPort\nmust be equal or greater than port.",
+                    "allOf": [
+                        {
+                            "type": "number"
+                        },
+                        {
+                            "type": "integer",
+                            "maximum": 2147483647,
+                            "minimum": -2147483648
+                        }
+                    ]
+                },
+                "port": {
+                    "description": "port represents the port on the given protocol. This can either\nbe a numerical or named port on a pod. If this field is not\nprovided, this matches all port names and numbers. If present,\nonly traffic on the specified protocol AND port will be\nmatched.",
+                    "$ref": "#/$defs/IntOrString"
+                },
+                "protocol": {
+                    "type": "string",
+                    "description": "protocol represents the protocol (TCP, UDP, or SCTP) which\ntraffic must match. If not specified, this field defaults to\nTCP."
+                }
+            }
+        },
+        "NetworkPolicySpec": {
+            "type": "object",
+            "description": "NetworkPolicySpec provides the specification of a NetworkPolicy",
+            "additionalProperties": false,
+            "properties": {
+                "egress": {
+                    "type": "array",
+                    "description": "egress is a list of egress rules to be applied to the selected\npods. Outgoing traffic is allowed if there are no\nNetworkPolicies selecting the pod (and cluster policy\notherwise allows the traffic), OR if the traffic matches at\nleast one egress rule across all of the NetworkPolicy objects\nwhose podSelector matches the pod. If this field is empty then\nthis NetworkPolicy limits all outgoing traffic (and serves\nsolely to ensure that the pods it selects are isolated by\ndefault). This field is beta-level in 1.8",
+                    "items": {
+                        "$ref": "#/$defs/NetworkPolicyEgressRule"
+                    }
+                },
+                "ingress": {
+                    "type": "array",
+                    "description": "ingress is a list of ingress rules to be applied to the\nselected pods. Traffic is allowed to a pod if there are no\nNetworkPolicies selecting the pod (and cluster policy\notherwise allows the traffic), OR if the traffic source is the\npod's local node, OR if the traffic matches at least one\ningress rule across all of the NetworkPolicy objects whose\npodSelector matches the pod. If this field is empty then this\nNetworkPolicy does not allow any traffic (and serves solely to\nensure that the pods it selects are isolated by default)",
+                    "items": {
+                        "$ref": "#/$defs/NetworkPolicyIngressRule"
+                    }
+                },
+                "podSelector": {
+                    "description": "podSelector selects the pods to which this NetworkPolicy object\napplies. The array of rules is applied to any pods selected by\nthis field. An empty selector matches all pods in the policy's\nnamespace. Multiple network policies can select the same set\nof pods. In this case, the ingress rules for each are combined\nadditively. This field is optional. If it is not specified, it\ndefaults to an empty selector.",
+                    "$ref": "#/$defs/LabelSelector"
+                },
+                "policyTypes": {
+                    "type": "array",
+                    "description": "policyTypes is a list of rule types that the NetworkPolicy\nrelates to. Valid options are [\"Ingress\"], [\"Egress\"], or\n[\"Ingress\", \"Egress\"]. If this field is not specified, it will\ndefault based on the existence of ingress or egress rules;\npolicies that contain an egress section are assumed to affect\negress, and all policies (whether or not they contain an\ningress section) are assumed to affect ingress. If you want to\nwrite an egress-only policy, you must explicitly specify\npolicyTypes [ \"Egress\" ]. Likewise, if you want to write a\npolicy that specifies that no egress is allowed, you must\nspecify a policyTypes value that include \"Egress\" (since such\na policy would not include an egress section and would\notherwise default to just [ \"Ingress\" ]). This field is\nbeta-level in 1.8",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "ObjectMeta": {
+            "type": "object",
+            "description": "ObjectMeta is metadata that all persisted resources must have,\nwhich includes all objects users must create.",
+            "additionalProperties": false,
+            "properties": {
+                "annotations": {
+                    "type": "object",
+                    "description": "Annotations is an unstructured key value map stored with a\nresource that may be set by external tools to store and\nretrieve arbitrary metadata. They are not queryable and should\nbe preserved when modifying objects. More info:\nhttps://kubernetes.io/docs/concepts/overview/working-with-objects/annotations",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "creationTimestamp": {
+                    "description": "CreationTimestamp is a timestamp representing the server time\nwhen this object was created. It is not guaranteed to be set\nin happens-before order across separate operations. Clients\nmay not set this value. It is represented in RFC3339 form and\nis in UTC.\n\nPopulated by the system. Read-only. Null for lists. More info:\nhttps://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
+                    "$ref": "#/$defs/%23Time"
+                },
+                "deletionGracePeriodSeconds": {
+                    "description": "Number of seconds allowed for this object to gracefully\nterminate before it will be removed from the system. Only set\nwhen deletionTimestamp is also set. May only be shortened.\nRead-only.",
+                    "allOf": [
+                        {
+                            "type": "number"
+                        },
+                        {
+                            "type": "integer",
+                            "maximum": 9.223372036854776E+18,
+                            "minimum": -9.223372036854776E+18
+                        }
+                    ]
+                },
+                "deletionTimestamp": {
+                    "description": "DeletionTimestamp is RFC 3339 date and time at which this\nresource will be deleted. This field is set by the server when\na graceful deletion is requested by the user, and is not\ndirectly settable by a client. The resource is expected to be\ndeleted (no longer visible from resource lists, and not\nreachable by name) after the time in this field, once the\nfinalizers list is empty. As long as the finalizers list\ncontains items, deletion is blocked. Once the\ndeletionTimestamp is set, this value may not be unset or be\nset further into the future, although it may be shortened or\nthe resource may be deleted prior to this time. For example, a\nuser may request that a pod is deleted in 30 seconds. The\nKubelet will react by sending a graceful termination signal to\nthe containers in the pod. After that 30 seconds, the Kubelet\nwill send a hard termination signal (SIGKILL) to the container\nand after cleanup, remove the pod from the API. In the\npresence of network partitions, this object may still exist\nafter this timestamp, until an administrator or automated\nprocess can determine the resource is fully terminated. If not\nset, graceful deletion of the object has not been requested.\n\nPopulated by the system when a graceful deletion is requested.\nRead-only. More info:\nhttps://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
+                    "$ref": "#/$defs/%23Time"
+                },
+                "finalizers": {
+                    "type": "array",
+                    "description": "Must be empty before the object is deleted from the registry.\nEach entry is an identifier for the responsible component that\nwill remove the entry from the list. If the deletionTimestamp\nof the object is non-nil, entries in this list can only be\nremoved. Finalizers may be processed and removed in any order.\nOrder is NOT enforced because it introduces significant risk\nof stuck finalizers. finalizers is a shared field, any actor\nwith permission can reorder it. If the finalizer list is\nprocessed in order, then this can lead to a situation in which\nthe component responsible for the first finalizer in the list\nis waiting for a signal (field value, external system, or\nother) produced by a component responsible for a finalizer\nlater in the list, resulting in a deadlock. Without enforced\nordering finalizers are free to order amongst themselves and\nare not vulnerable to ordering changes in the list.",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "generateName": {
+                    "type": "string",
+                    "description": "GenerateName is an optional prefix, used by the server, to\ngenerate a unique name ONLY IF the Name field has not been\nprovided. If this field is used, the name returned to the\nclient will be different than the name passed. This value will\nalso be combined with a unique suffix. The provided value has\nthe same validation rules as the Name field, and may be\ntruncated by the length of the suffix required to make the\nvalue unique on the server.\n\nIf this field is specified and the generated name exists, the\nserver will return a 409.\n\nApplied only if Name is not specified. More info:\nhttps://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#idempotency"
+                },
+                "generation": {
+                    "description": "A sequence number representing a specific generation of the\ndesired state. Populated by the system. Read-only.",
+                    "allOf": [
+                        {
+                            "type": "number"
+                        },
+                        {
+                            "type": "integer",
+                            "maximum": 9.223372036854776E+18,
+                            "minimum": -9.223372036854776E+18
+                        }
+                    ]
+                },
+                "labels": {
+                    "type": "object",
+                    "description": "Map of string keys and values that can be used to organize and\ncategorize (scope and select) objects. May match selectors of\nreplication controllers and services. More info:\nhttps://kubernetes.io/docs/concepts/overview/working-with-objects/labels",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "managedFields": {
+                    "type": "array",
+                    "description": "ManagedFields maps workflow-id and version to the set of fields\nthat are managed by that workflow. This is mostly for internal\nhousekeeping, and users typically shouldn't need to set or\nunderstand this field. A workflow can be the user's name, a\ncontroller's name, or the name of a specific apply path like\n\"ci-cd\". The set of fields is always in the version that the\nworkflow used when modifying the object.",
+                    "items": {
+                        "$ref": "#/$defs/ManagedFieldsEntry"
+                    }
+                },
+                "name": {
+                    "type": "string",
+                    "description": "Name must be unique within a namespace. Is required when\ncreating resources, although some resources may allow a client\nto request the generation of an appropriate name\nautomatically. Name is primarily intended for creation\nidempotence and configuration definition. Cannot be updated.\nMore info:\nhttps://kubernetes.io/docs/concepts/overview/working-with-objects/names#names"
+                },
+                "namespace": {
+                    "type": "string",
+                    "description": "Namespace defines the space within which each name must be\nunique. An empty namespace is equivalent to the \"default\"\nnamespace, but \"default\" is the canonical representation. Not\nall objects are required to be scoped to a namespace - the\nvalue of this field for those objects will be empty.\n\nMust be a DNS_LABEL. Cannot be updated. More info:\nhttps://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces"
+                },
+                "ownerReferences": {
+                    "type": "array",
+                    "description": "List of objects depended by this object. If ALL objects in the\nlist have been deleted, this object will be garbage collected.\nIf this object is managed by a controller, then an entry in\nthis list will point to this controller, with the controller\nfield set to true. There cannot be more than one managing\ncontroller.",
+                    "items": {
+                        "$ref": "#/$defs/OwnerReference"
+                    }
+                },
+                "resourceVersion": {
+                    "type": "string",
+                    "description": "An opaque value that represents the internal version of this\nobject that can be used by clients to determine when objects\nhave changed. May be used for optimistic concurrency, change\ndetection, and the watch operation on a resource or set of\nresources. Clients must treat these values as opaque and\npassed unmodified back to the server. They may only be valid\nfor a particular resource or set of resources.\n\nPopulated by the system. Read-only. Value must be treated as\nopaque by clients and . More info:\nhttps://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency"
+                },
+                "selfLink": {
+                    "type": "string",
+                    "description": "Deprecated: selfLink is a legacy read-only field that is no\nlonger populated by the system."
+                },
+                "uid": {
+                    "type": "string",
+                    "description": "UID is the unique in time and space value for this object. It\nis typically generated by the server on successful creation of\na resource and is not allowed to change on PUT operations.\n\nPopulated by the system. Read-only. More info:\nhttps://kubernetes.io/docs/concepts/overview/working-with-objects/names#uids"
+                }
+            }
+        },
+        "OwnerReference": {
+            "type": "object",
+            "description": "OwnerReference contains enough information to let you identify\nan owning object. An owning object must be in the same\nnamespace as the dependent, or be cluster-scoped, so there is\nno namespace field.",
+            "additionalProperties": false,
+            "properties": {
+                "apiVersion": {
+                    "type": "string",
+                    "description": "API version of the referent."
+                },
+                "blockOwnerDeletion": {
+                    "type": "boolean",
+                    "description": "If true, AND if the owner has the \"foregroundDeletion\"\nfinalizer, then the owner cannot be deleted from the key-value\nstore until this reference is removed. See\nhttps://kubernetes.io/docs/concepts/architecture/garbage-collection/#foreground-deletion\nfor how the garbage collector interacts with this field and\nenforces the foreground deletion. Defaults to false. To set\nthis field, a user needs \"delete\" permission of the owner,\notherwise 422 (Unprocessable Entity) will be returned."
+                },
+                "controller": {
+                    "type": "boolean",
+                    "description": "If true, this reference points to the managing controller."
+                },
+                "kind": {
+                    "type": "string",
+                    "description": "Kind of the referent. More info:\nhttps://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds"
+                },
+                "name": {
+                    "type": "string",
+                    "description": "Name of the referent. More info:\nhttps://kubernetes.io/docs/concepts/overview/working-with-objects/names#names"
+                },
+                "uid": {
+                    "type": "string",
+                    "description": "UID of the referent. More info:\nhttps://kubernetes.io/docs/concepts/overview/working-with-objects/names#uids"
+                }
+            },
+            "required": [
+                "apiVersion",
+                "kind",
+                "name",
+                "uid"
+            ]
         },
         "PatchJson6902": {
             "oneOf": [
@@ -857,6 +1342,45 @@
                 "port"
             ]
         },
+        "RefAlpha": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "kind": {
+                    "enum": [
+                        "stack",
+                        "instance",
+                        "target",
+                        "external"
+                    ]
+                },
+                "name": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "kind",
+                "name"
+            ]
+        },
+        "ReloaderSpec": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "auto": {
+                    "type": "boolean",
+                    "description": "Auto-detect and reload on any referenced ConfigMap or Secret changes"
+                },
+                "configmaps": {
+                    "type": "array",
+                    "description": "Watch specific ConfigMaps"
+                },
+                "secrets": {
+                    "type": "array",
+                    "description": "Watch specific Secrets"
+                }
+            }
+        },
         "ReplacementsInline": {
             "oneOf": [
                 {
@@ -1014,6 +1538,28 @@
                 }
             }
         },
+        "RestartSpec": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "schedule": {
+                    "type": "string"
+                },
+                "targetKind": {
+                    "enum": [
+                        "Deployment",
+                        "StatefulSet",
+                        "DaemonSet"
+                    ]
+                },
+                "targetName": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "schedule"
+            ]
+        },
         "SecretArgs": {
             "type": "object",
             "description": "SecretArgs contains the metadata of how to generate a secret",
@@ -1105,6 +1651,31 @@
                 }
             }
         },
+        "StackInstanceAlpha": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "context": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "dependsOn": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/RefAlpha"
+                    }
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "stack": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "stack"
+            ]
+        },
         "Target": {
             "type": "object",
             "additionalProperties": false,
@@ -1132,6 +1703,34 @@
             "required": [
                 "name"
             ]
+        },
+        "TargetAlpha": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+                "context": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "dependsOn": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/RefAlpha"
+                    }
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "instances": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/$defs/StackInstanceAlpha"
+                    }
+                }
+            }
+        },
+        "Time": {
+            "type": "string"
         },
         "Var": {
             "type": "object",
@@ -1258,6 +1857,10 @@
         },
         "clusterName": {
             "type": "string"
+        },
+        "deployAlpha": {
+            "description": "Alpha deployment and placement surface. Keep orchestration semantics here\nwhile the final contract shape is still under evaluation.",
+            "$ref": "#/$defs/DeployAlpha"
         },
         "environment": {
             "enum": [
@@ -1396,6 +1999,13 @@
             "required": [
                 "domain"
             ]
+        },
+        "networkPolicies": {
+            "type": "object",
+            "description": "Validated Kubernetes NetworkPolicies",
+            "additionalProperties": {
+                "$ref": "#/$defs/K8sNetworkPolicy"
+            }
         }
     },
     "required": [

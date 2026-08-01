@@ -1,0 +1,19 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Auto-update Docker tags inside CUE configuration files",
+      "fileMatch": [
+        "\\.cue$"
+      ],
+      "matchStrings": [
+        "repository:\\s*\"(?<depName>[^\"]+)\"\\s*\\n\\s*tag:\\s*\"(?<currentValue>[^\"]+)\""
+      ],
+      "datasourceTemplate": "docker"
+    }
+  ]
+}

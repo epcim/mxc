@@ -290,7 +290,7 @@ CUE topology modeling makes your cluster structurally self-aware. You can progra
 Instead of a single, monolithic configuration repository, MXC supports standalone stack modules. For example, our DNS stack maintains its own isolated module file:
 
 ```cue
-module: "mxc.io/dns"
+module: "mxc.cue/dns"
 language: version: "v0.12.0"
 ```
 

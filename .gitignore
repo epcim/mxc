@@ -1,0 +1,3 @@
+# Ignore local build and rendering artifacts
+.build/
+.build*

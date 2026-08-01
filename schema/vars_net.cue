@@ -4,7 +4,7 @@
 package schema
 
 @jsonschema(schema="http://json-schema.org/draft-07/schema#")
-@jsonschema(id="https://gitea.apealive.net/epcim/gitops-infra/schemas/vars-net.schema.json")
+@jsonschema(id="https://raw.githubusercontent.com/epcim/mxc/main/schema/vars-net.schema.json")
 network?: {
 	// Site/location identifier
 	site?: string

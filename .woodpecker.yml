@@ -1,0 +1,19 @@
+# vim: ft=yaml syntax=yaml sts=2 ts=2 sw=2
+when:
+  - event: [push, pull_request]
+
+steps:
+  - name: validate-mxc
+    image: alpine:3.20
+    commands:
+      # Install system dependencies including fish (required by mxc.just test tasks)
+      - apk add --no-cache curl bash git jq yq fish
+      
+      # Install CUE compiler (v0.11.0)
+      - curl -sSfL https://github.com/cue-lang/cue/releases/download/v0.11.0/cue_v0.11.0_linux_amd64.tar.gz | tar -xz -C /usr/local/bin/ cue
+      
+      # Install Just task runner (1.36.0)
+      - curl -sSfL https://github.com/casey/just/releases/download/1.36.0/just-1.36.0-x86_64-unknown-linux-musl.tar.gz | tar -xz -C /usr/local/bin/ just
+      
+      # Run compilation validations and test suite
+      - just -f mxc.just test

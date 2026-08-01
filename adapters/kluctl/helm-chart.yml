@@ -1,0 +1,5 @@
+# vim: ft=yaml syntax=yaml sts=2 ts=2 sw=2
+{% if helmChart.releaseName is defined %}
+helmChart:
+{{ helmChart | to_yaml | indent(2, first=true) }}
+{% endif %}

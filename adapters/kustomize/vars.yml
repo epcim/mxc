@@ -1,0 +1,10 @@
+template:
+  kustomize:
+    common:
+      generatorOptions:
+        disableNameSuffixHash: true
+
+overlays: {}
+kustomize:
+  generatorOptions:
+    disableNameSuffixHash: true

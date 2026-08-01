@@ -136,6 +136,6 @@ Every adapter must expose a strict interface to its consumer:
 
 * **`helmChart`:** Defines the upstream chart, repository, version, and optional release values.
 * **`context`:** Accepts the compiled CUE schema outputs (matching the exact properties of the application).
-* **`kustomize`:** Declares output target namespaces and injects custom overlays (e.g., `overlays/pvc.yaml` or custom authentication middlewares).
+* **`kustomize`:** Declares output target namespaces and injects custom overlays (e.g., `overlays/pvc.yaml` or direct, type-safe CUE structures under `kustomize.overlays` mapped to `overlays/cue-overlays.yaml`).
 
 By defining this standard, we can transition these adapters over time into purely model-driven CUE packages, eliminating intermediate YAML templates entirely while keeping the composition layer 100% backward-compatible.

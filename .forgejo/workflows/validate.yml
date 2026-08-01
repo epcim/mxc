@@ -1,0 +1,30 @@
+name: Validate Model-X Configuration (MXC)
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  validate:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y curl git jq yq fish
+          
+          # Install CUE
+          wget -q "https://github.com/cue-lang/cue/releases/download/v0.11.0/cue_v0.11.0_linux_amd64.tar.gz"
+          tar -xzf cue_v0.11.0_linux_amd64.tar.gz && chmod +x cue && sudo mv cue /usr/local/bin/
+          
+          # Install Just
+          wget -q "https://github.com/casey/just/releases/download/1.36.0/just-1.36.0-x86_64-unknown-linux-musl.tar.gz"
+          tar -xzf just-1.36.0-x86_64-unknown-linux-musl.tar.gz && chmod +x just && sudo mv just /usr/local/bin/
+
+      - name: Run MXC Test Suite
+        run: |
+          just -f mxc.just test

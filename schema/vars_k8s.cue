@@ -4,13 +4,14 @@
 package schema
 
 @jsonschema(schema="http://json-schema.org/draft-07/schema#")
-@jsonschema(id="https://gitea.apealive.net/epcim/gitops-infra/schemas/vars-k8s.schema.json")
+@jsonschema(id="https://raw.githubusercontent.com/epcim/mxc/main/schema/vars-k8s.schema.json")
 kube?: {
 	// Kubernetes distribution type
 	type!: "microk8s" | "k3s" | "talos" | "eks" | "gke" | "aks" | "kind" | "kwok"
 	networking?: {
-		pod_cidr?:     =~"^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+/[0-9]+$"
-		service_cidr?: =~"^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+/[0-9]+$"
+		pod_cidr?:         =~"^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+/[0-9]+$"
+		service_cidr?:     =~"^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+/[0-9]+$"
+		policy_namespace?: string
 		...
 	}
 	storage!: {
