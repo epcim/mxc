@@ -27,24 +27,28 @@ package schema
 	// Dynamic kustomize context mappings matching full upstream schemas
 	kustomize?: #Kustomization
 
-	// Extensible helm-values context block passed direct to template/kluctl
+	// Primary type-safe configuration values surface
+	values?: {
+		[string]: _
+	}
+
+	// Extensible helm-values context block (retained for backward compatibility)
 	context?: {
 		[string]: _
 	}
 
-	// Reference(s) to the values-schema governing `context`'s shape: a `#`-prefixed
-	// token resolves against mxc's own internal/bundled schema registry (e.g.
-	// "#app-template" for the generic bjw-s app-template chart); a URL scheme
-	// resolves externally via the per-stack vendor+validate pipeline. As a list,
-	// entries are tried in order — first one that resolves wins.
-	contextSchema?: string | [...string]
+	// Primary schema reference for values shape
+	valuesSchema?: string | [...string]
+
+	// Reference(s) to the values-schema governing `context`'s shape (alias for valuesSchema)
+	contextSchema?: valuesSchema
 
 	// Declared secret contract: key names this app expects, defaulting to the
 	// established Jinja placeholder convention ("{{ secrets.<app>.<key> }}"),
 	// resolved by Kluctl/SOPS at apply-time. A real value may unify this away
 	// once resolved by an external decrypt step ahead of compilation — see
 	// AGENTS.md "Secrets Resolution Strategy".
-	secrets?: [string]: string
+	secrets?: [string]: _
 
 	// Escape hatch for Mirantis K0rdent service configurations
 	k0rdent?: {

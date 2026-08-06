@@ -324,6 +324,32 @@ Two valid places exist for a Jinja secret placeholder — pick based on whether 
 *   **Inline directly on the ENV var, at `cluster-home-mxc` level** (e.g. `mxc-library` stack's `context...env.EMBY_SMTP_HOST` overridden in `cluster-home-mxc/apps-media.cue`): correct default when the secret is a simple single-assignment key/value pair, consumed exactly once, with no need to thread it through any other part of the same struct (kustomize generators, multiple env vars, etc). Most app-specific credentials (SMTP, API tokens) fit this case — don't introduce a schema field just to hold a value used in exactly one place.
 *   **`#AppCore.secrets` schema field, declared in the `mxc-library` stack itself** (e.g. `netbird.cue`'s `secrets.setup_key`, `silo.cue`'s `secrets.secretKey`): reserved for when the value must be **referenced more than once inside the same struct** (netbird's `setup_key` also drives `kustomize.secretGenerator.literals`) or must be **overridable per-instance from `cluster-home-mxc`** (netbird's `home-gateway1`/`home-gateway2` each override `secrets.setup_key` with a different peer key). The field's CUE default is still the same Jinja placeholder convention — this is purely about giving cluster-home-mxc a single named override point, not a different resolution mechanism.
 
+### 🛡️ Least-Privilege Secret Isolation & The Flat App Namespace
+
+To resolve variable-shadowing conflicts inside the deployment runtime (Kluctl/Jinja) while maintaining secure, category-independent models:
+
+1.  **The Shadowing Conflict**: When CUE-compiled targets are merged using the pattern `- values: {{ apps.<appName> | to_json }}`, the app's declared `secrets` map (under `#AppCore.secrets` schema) shadows the global, decrypted `secrets` dictionary. This causes any nested Jinja reference (like `{{ secrets.media.silo.secretKey }}`) to crash with an `UndefinedError`.
+2.  **Least-Privilege Isolation**: Instead of passing the entire global `secrets` scope to all sub-deployments, we restrict the passed scope to **only** the nested parameters that the app actually references. Apps requiring no Jinja-templated secret parameters (like `cert-manager` or `authelia`) receive **no** secrets scope block.
+3.  **The Flat Application Namespace Rule**: To keep application stacks inside `mxc-library` reusable, clean, and category-independent, app-specific secret contracts must be authored using flat app-level paths:
+    ```cue
+    // mxc-library/stacks/media/silo.cue
+    secrets: {
+        secretKey: string | *"{{ secrets.silo.secretKey }}"
+    }
+    ```
+4.  **Target Mapping / Bridge**: In `deployment.yml`, we bridge the legacy categorized secret values (stored in `vars-sec.yml` under `secrets.media.silo`) straight into the flat namespace the app expects:
+    ```yaml
+    # cluster-home-mxc/deployment.yml
+    - path: ../mxc-library/adapters/kluctl
+      tags: [media, silo]
+      vars:
+        - values: {{ apps.silo | to_json }}
+        - values:
+            secrets:
+              silo: {{ secrets.media.silo | to_json }}
+    ```
+    This elegant pattern ensures complete isolation, prevents shadowing conflicts, and keeps legacy files pristine!
+
 ### Future-Proofing: Migrating to Non-Jinja Secret Engines
 If we migrate to a non-Jinja deployment engine (like Mirantis K0rdent or native Kubernetes operators), **these Jinja secret placeholders can be globally replaced by alternative secret-resolution methods with zero impact on the CUE compiler core**:
 

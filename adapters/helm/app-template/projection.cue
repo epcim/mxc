@@ -104,7 +104,8 @@ import (
 			}
 		}
 
-		// 4. Merge any user-specified context overrides
-		if appSpec.context != _|_ { appSpec.context }
+		// 4. Merge any user-specified context/values overrides
+		if appSpec.values != _|_ { appSpec.values }
+		if appSpec.values == _|_ && appSpec.context != _|_ { appSpec.context }
 	}
 }

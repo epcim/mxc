@@ -7,6 +7,8 @@ import alpha "github.com/epcim/mxc/schema/alpha:alpha"
 	clusterName: string
 	environment: "production" | "staging" | "development"
 	
+	env?: [string]: string
+	
 	kube: {
 		type: "microk8s" | "k3s" | "talos" | "eks" | "gke" | "aks" | "kind" | "kwok"
 		storage: {

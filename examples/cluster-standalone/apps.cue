@@ -90,6 +90,26 @@ cluster: apps: {
 			kustomize: {
 				namespace: "media"
 			}
+			secrets: {
+				secretKey: "{{ secrets.media.silo.secretKey }}"
+				notifications: {
+					host: "{{ secrets.infra.notifications.host }}"
+					port: "{{ secrets.infra.notifications.port }}"
+					user: "{{ secrets.infra.notifications.user }}"
+					pass: "{{ secrets.infra.notifications.pass }}"
+					addr: "{{ secrets.infra.notifications.addr }}"
+				}
+			}
+			context: {
+				controllers: main: containers: main: env: {
+					SECRET_KEY: secrets.secretKey
+					SMTP_HOST:  secrets.notifications.host
+					SMTP_PORT:  secrets.notifications.port
+					SMTP_USER:  secrets.notifications.user
+					SMTP_PASS:  secrets.notifications.pass
+					SMTP_FROM:  secrets.notifications.addr
+				}
+			}
 		}
 	}
 }

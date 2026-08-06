@@ -10,5 +10,15 @@ import (
 cluster: apps: media: {
 	silo: smed.#Silo & {
 		expose: http: fqdn: "silo.\(cluster.network.domain)"
+		secrets: {
+			secretKey: "{{ secrets.media.silo.secretKey }}"
+			notifications: {
+				host: "{{ secrets.infra.notifications.host }}"
+				port: "{{ secrets.infra.notifications.port }}"
+				user: "{{ secrets.infra.notifications.user }}"
+				pass: "{{ secrets.infra.notifications.pass }}"
+				addr: "{{ secrets.infra.notifications.addr }}"
+			}
+		}
 	}
 }

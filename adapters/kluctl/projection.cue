@@ -114,9 +114,10 @@ import (
 						}
 
 						if !isAppTemplate {
-							// For native helm charts, pass through custom context values directly
+							// For native helm charts, pass through custom values/context directly
 							context: {
-								if appSpec.context != _|_ { appSpec.context }
+								if appSpec.values != _|_ { appSpec.values }
+								if appSpec.values == _|_ && appSpec.context != _|_ { appSpec.context }
 							}
 						}
 
