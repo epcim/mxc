@@ -84,9 +84,6 @@ package schema
 
 	// Optional rollout restart cronjob configuration
 	restart?: #RestartSpec
-
-	// Optional Stakater Reloader annotations configuration
-	reloader?: #ReloaderSpec
 }
 
 #PortSpec: {
@@ -141,14 +138,6 @@ package schema
 	targetName?: string
 }
 
-#ReloaderSpec: {
-	// Auto-detect and reload on any referenced ConfigMap or Secret changes
-	auto?: bool | *false
-	// Watch specific ConfigMaps
-	configmaps: [...string] | *[]
-	// Watch specific Secrets
-	secrets: [...string] | *[]
-}
 
 
 

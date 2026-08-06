@@ -16,7 +16,7 @@ This repository is designed to be **fully self-contained and standalone-ready**,
 ```text
 mxc/
 ├── schema/             # Compiler Rules (#AppCore, #ClusterConfig)
-│   ├── apps.cue        # Workload schemas, probes, Reloader configs
+│   ├── apps.cue        # Workload schemas, ports, and restart specs
 │   ├── kluctl.cue      # Standard Kluctl deployment schemas
 │   ├── cluster.cue     # Platform FQDN and ingress configurations
 │   ├── vars_net.cue    # NetBox-compatible network vip mappings
@@ -95,10 +95,7 @@ apps: hajimari: {
     ports: http: port: 80
     expose: http: target: "ingress"
     
-    // Automated Stakater Reloader annotation injection (AD-014)
-    reloader: {
-        auto: true
-    }
+
 
     // Embed type-safe, compile-time-validated custom resource overlays directly
     kustomize: {
@@ -116,7 +113,7 @@ apps: hajimari: {
 }
 ```
 
-When you execute `just mxc::export cluster-home-mxc`, the compiler automatically parses this schema, projects the bjw-s app-template details, injects standard probes/timezones, attaches the requested Reloader annotations, and dumps a completely formatted `vars.yml` that Kluctl renders instantly!
+When you execute `just mxc::export cluster-home-mxc`, the compiler automatically parses this schema, projects the bjw-s app-template details, injects standard probes/timezones, and dumps a completely formatted `vars.yml` that Kluctl renders instantly!
 
 ---
 

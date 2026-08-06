@@ -2,7 +2,6 @@
 package kluctl
 
 import (
-	"strings"
 	"list"
 	"github.com/epcim/mxc/schema:schema"
 	"github.com/epcim/mxc/adapters/helm/app-template:app_template"
@@ -49,20 +48,6 @@ import (
 							if (appSpec.contextSchema & [...string]) != _|_ for s in appSpec.contextSchema {s},
 						]
 						let isAppTemplate = len([for s in contextSchemaList if s == "#app-template" {s}]) > 0
-
-						let reloaderAnnotations = {
-							if appSpec.reloader != _|_ {
-								if appSpec.reloader.auto != _|_ && appSpec.reloader.auto {
-									"reloader.stakater.com/auto": "true"
-								}
-								if len(appSpec.reloader.configmaps) > 0 {
-									"configmap.reloader.stakater.com/reload": strings.Join(appSpec.reloader.configmaps, ",")
-								}
-								if len(appSpec.reloader.secrets) > 0 {
-									"secret.reloader.stakater.com/reload": strings.Join(appSpec.reloader.secrets, ",")
-								}
-							}
-						}
 
 						if appSpec.restart != _|_ {
 							restart: {
@@ -125,22 +110,13 @@ import (
 								"ingressClass": input.kube.ingress.class
 							}).output
 
-							context: baseContext & {
-								if appSpec.reloader != _|_ {
-									defaultPodOptions: {
-										annotations: reloaderAnnotations
-									}
-								}
-							}
+							context: baseContext
 						}
 
 						if !isAppTemplate {
 							// For native helm charts, pass through custom context values directly
 							context: {
 								if appSpec.context != _|_ { appSpec.context }
-								if appSpec.reloader != _|_ {
-									podAnnotations: reloaderAnnotations
-								}
 							}
 						}
 
