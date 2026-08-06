@@ -64,13 +64,13 @@ _export dest expr="mxc_vars" *args="":
     rm -f {{ root }}/{{ dest }}/vars-cue.yml.tmp
 
 _diff dest *args="":
-    just clean_build
+    just -f {{ root }}/Justfile clean_build
     just _export {{ dest }}
     echo "▶ Running Kluctl Diff on {{ dest }}..."
     cd {{ root }} && kluctl diff -t {{ dest }} --ignore-kluctl-metadata --replace-on-error --render-output-dir ${BUILD_DIR:-{{ root }}/.build} {{ args }}
 
 _apply dest *args="":
-    just clean_build
+    just -f {{ root }}/Justfile clean_build
     just _export {{ dest }}
     echo "▶ Running Kluctl Deploy on {{ dest }}..."
     cd {{ root }} && kluctl deploy -t {{ dest }} --replace-on-error --render-output-dir ${BUILD_DIR:-{{ root }}/.build} {{ args }}
