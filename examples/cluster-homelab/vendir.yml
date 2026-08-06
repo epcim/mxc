@@ -7,5 +7,5 @@ directories:
     contents:
       - path: .
         git:
-          url: ssh://git@forgejo.aalive.familyds.net:2222/apealive/mxc-library.git
+          url: https://github.com/epcim/mxc-library
           ref: main

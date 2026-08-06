@@ -1,3 +1,12 @@
 # Ignore local build and rendering artifacts
 .build/
 .build*
+
+# Ignore synced CUE external packages/libraries
+**/cue.mod/pkg/github.com/epcim/mxc-library/
+
+# Ignore vendir lockfiles
+**/vendir.lock.yml
+
+# Ignore compiled parameters
+**/vars.yml

@@ -41,6 +41,12 @@ apply dest=TARGET_DEFAULT *args="":
     	{{ if path_exists(root + "/" + dest) == "true" { dest } else { TARGET_DEFAULT } }} \
     	{{ if path_exists(root + "/" + dest) == "true" { args } else { trim(dest + " " + args) } }}
 
+# Sync CUE packages/libraries (such as mxc-library) via vendir if vendir.yml exists
+[group('mxc')]
+sync target=TARGET_DEFAULT:
+    just mxc::_sync \
+    	{{ if path_exists(root + "/" + target) == "true" { target } else { TARGET_DEFAULT } }}
+
 # Internal helper implementations (prefixed with _ for clean encapsulation)
 _vet dest *args="":
     (cd {{ root }}/{{ dest }} && cue vet ./... {{ args }})
@@ -68,6 +74,15 @@ _apply dest *args="":
     just mxc::_export {{ dest }}
     echo "▶ Running Kluctl Deploy on {{ dest }}..."
     cd {{ root }} && kluctl deploy -t {{ dest }} --replace-on-error --render-output-dir ${BUILD_DIR:-{{ root }}/.build} {{ args }}
+
+_sync dest:
+    #!/usr/bin/env fish
+    if test -f "{{ root }}/{{ dest }}/vendir.yml"
+    	echo "▶ Syncing CUE dependencies for {{ dest }} via vendir..."
+    	cd {{ root }}/{{ dest }} && vendir sync
+    else
+    	echo "ℹ No vendir.yml found in {{ dest }}. Skipping sync."
+    end
 
 # Run CUE schema test validations and CI checks for Forgejo / GitHub Actions
 [group('mxc')]
