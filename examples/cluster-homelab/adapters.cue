@@ -5,6 +5,7 @@ import (
 	adp_argocd       "github.com/epcim/mxc/adapters/argocd:argocd"
 	adp_argoworkflow "github.com/epcim/mxc/adapters/argoworkflow:argoworkflow"
 	adp_kluctl       "github.com/epcim/mxc-library/adapters/kluctl:kluctl"
+	adp_catalog      "github.com/epcim/mxc/adapters/catalog:catalog"
 )
 
 adapters: {
@@ -15,6 +16,9 @@ adapters: {
 		input: cluster
 	}
 	argoworkflow: adp_argoworkflow.#FromCluster & {
+		input: cluster
+	}
+	catalog: adp_catalog.#FromCluster & {
 		input: cluster
 	}
 }

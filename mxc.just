@@ -41,17 +41,17 @@ list-services:
 	@cd {{ root }}/{{ TARGET_DEFAULT }} && cue export -e "adapters.catalog.output.endpoints" --out yaml
 
 # Compile, export, and preview deployment differences on the cluster (allows extra kluctl args)
-[group('mxc')]
+[group('mxc-ops')]
 diff *args="":
-    just _diff {{ TARGET_DEFAULT }} {{ args }}
+    just _diff {{ args }}
 
 # Compile, export, and apply/deploy configurations to the cluster (uses active KUBECONFIG, allows extra kluctl args)
-[group('mxc')]
+[group('mxc-ops')]
 apply *args="":
-    just _apply {{ TARGET_DEFAULT }} {{ args }}
+    just _apply {{ args }}
 
 # Sync CUE packages/libraries (such as mxc-library) via vendir if vendir.yml exists
-[group('mxc')]
+[group('mxc-ops')]
 sync:
     just _sync {{ TARGET_DEFAULT }}
 
@@ -71,19 +71,55 @@ _export dest expr="mxc_vars" *args="":
     end
     rm -f {{ root }}/{{ dest }}/vars-cue.yml.tmp
 
-_diff dest *args="":
-    just -f {{ root }}/Justfile clean_build
-    mkdir -p {{ root }}/.build
-    just _export {{ dest }}
-    echo "▶ Running Kluctl Diff on {{ dest }}..."
-    cd {{ root }} && kluctl diff -t {{ dest }} --ignore-kluctl-metadata --replace-on-error --render-output-dir ${BUILD_DIR:-{{ root }}/.build} {{ args }}
+_diff *args="":
+    #!/usr/bin/env fish
+    set -l dest "{{ TARGET_DEFAULT }}"
+    set -l kluctl_args
 
-_apply dest *args="":
+    if test (count $argv) -gt 0
+    	if test -d "{{ root }}/$argv[1]"
+    		set dest $argv[1]
+    		set kluctl_args $argv[2..-1]
+    	else
+    		set kluctl_args $argv
+    	end
+    end
+
+    set -l build_dir "{{ root }}/.build"
+    if set -q BUILD_DIR
+    	set build_dir $BUILD_DIR
+    end
+
     just -f {{ root }}/Justfile clean_build
-    mkdir -p {{ root }}/.build
-    just _export {{ dest }}
-    echo "▶ Running Kluctl Deploy on {{ dest }}..."
-    cd {{ root }} && kluctl deploy -t {{ dest }} --replace-on-error --render-output-dir ${BUILD_DIR:-{{ root }}/.build} {{ args }}
+    mkdir -p $build_dir
+    just _export $dest
+    echo "▶ Running Kluctl Diff on $dest..."
+    cd {{ root }} && kluctl diff -t $dest --ignore-kluctl-metadata --replace-on-error --render-output-dir $build_dir $kluctl_args
+
+_apply *args="":
+    #!/usr/bin/env fish
+    set -l dest "{{ TARGET_DEFAULT }}"
+    set -l kluctl_args
+
+    if test (count $argv) -gt 0
+    	if test -d "{{ root }}/$argv[1]"
+    		set dest $argv[1]
+    		set kluctl_args $argv[2..-1]
+    	else
+    		set kluctl_args $argv
+    	end
+    end
+
+    set -l build_dir "{{ root }}/.build"
+    if set -q BUILD_DIR
+    	set build_dir $BUILD_DIR
+    end
+
+    just -f {{ root }}/Justfile clean_build
+    mkdir -p $build_dir
+    just _export $dest
+    echo "▶ Running Kluctl Deploy on $dest..."
+    cd {{ root }} && kluctl deploy -t $dest --replace-on-error --render-output-dir $build_dir $kluctl_args
 
 _sync dest:
     #!/usr/bin/env fish
