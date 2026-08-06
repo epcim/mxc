@@ -2,50 +2,58 @@
 
 # FIXME, this is not needed shell is by default, but requested fish shell for longer tasks
 
-root := source_dir() + "/.."
-TARGET_DEFAULT := env("MXC_TARGET", "cluster-home-mxc")
+root := clean(source_dir() + "/..")
+TARGET_DEFAULT := `echo "${TARGET:-cluster-home-mxc}" | sed -E 's/(-mxc)?$/-mxc/'`
 
 # Run CUE schema validation (cue vet) against MXC rules
 [group('mxc')]
-vet dest=TARGET_DEFAULT *args="":
-    just _vet \
-    	{{ if path_exists(root + "/" + dest) == "true" { dest } else { TARGET_DEFAULT } }} \
-    	{{ if path_exists(root + "/" + dest) == "true" { args } else { trim(dest + " " + args) } }}
+vet *args="":
+    just _vet {{ TARGET_DEFAULT }} {{ args }}
 
 # Validate MXC schemas and export flow. Alias for the full MXC test suite.
 [group('mxc')]
-validate target=TARGET_DEFAULT *args="":
-    just test \
-    	{{ if path_exists(root + "/" + target) == "true" { target } else { TARGET_DEFAULT } }} \
-    	{{ if path_exists(root + "/" + target) == "true" { args } else { trim(target + " " + args) } }}
+validate *args="":
+    just test {{ TARGET_DEFAULT }} {{ args }}
 
 # Compile CUE and merge it with legacy cluster-home/vars.yml into target vars.yml
 [group('mxc')]
-export dest=TARGET_DEFAULT expr="mxc_vars" *args="":
-    just _export \
-    	{{ if path_exists(root + "/" + dest) == "true" { dest } else { TARGET_DEFAULT } }} \
-    	{{ if path_exists(root + "/" + dest) == "true" { expr } else { dest } }} \
-    	{{ if path_exists(root + "/" + dest) == "true" { args } else { trim(expr + " " + args) } }}
+export expr="mxc_vars" *args="":
+    just _export {{ TARGET_DEFAULT }} {{ expr }} {{ args }}
+
+# Compile and display the fully projected variables of a single application directly to stdout
+[group('mxc')]
+show app:
+	@cd {{ root }}/{{ TARGET_DEFAULT }} && cue export -e "adapters.catalog.output.apps.\"{{ app }}\"" --out yaml 2>/dev/null || (printf "\033[31m❌ Error: Application '{{ app }}' is not defined inside target '{{ TARGET_DEFAULT }}'!\033[0m\n" >&2 && exit 1)
+
+# Compile and display the flat services catalog of all active workloads directly to stdout
+[group('mxc')]
+show-catalog:
+	@cd {{ root }}/{{ TARGET_DEFAULT }} && cue export -e "adapters.catalog.output.services" --out yaml
+
+# List all active services configured across the cluster
+[group('mxc')]
+list:
+	@cd {{ root }}/{{ TARGET_DEFAULT }} && cue export -e "adapters.catalog.output.services" --out yaml
+
+# Display a simplified key-value mapping of all active services to their primary DNS/FQDN endpoints
+[group('mxc')]
+list-services:
+	@cd {{ root }}/{{ TARGET_DEFAULT }} && cue export -e "adapters.catalog.output.endpoints" --out yaml
 
 # Compile, export, and preview deployment differences on the cluster (allows extra kluctl args)
 [group('mxc')]
-diff dest=TARGET_DEFAULT *args="":
-    just _diff \
-    	{{ if path_exists(root + "/" + dest) == "true" { dest } else { TARGET_DEFAULT } }} \
-    	{{ if path_exists(root + "/" + dest) == "true" { args } else { trim(dest + " " + args) } }}
+diff *args="":
+    just _diff {{ TARGET_DEFAULT }} {{ args }}
 
 # Compile, export, and apply/deploy configurations to the cluster (uses active KUBECONFIG, allows extra kluctl args)
 [group('mxc')]
-apply dest=TARGET_DEFAULT *args="":
-    just _apply \
-    	{{ if path_exists(root + "/" + dest) == "true" { dest } else { TARGET_DEFAULT } }} \
-    	{{ if path_exists(root + "/" + dest) == "true" { args } else { trim(dest + " " + args) } }}
+apply *args="":
+    just _apply {{ TARGET_DEFAULT }} {{ args }}
 
 # Sync CUE packages/libraries (such as mxc-library) via vendir if vendir.yml exists
 [group('mxc')]
-sync target=TARGET_DEFAULT:
-    just _sync \
-    	{{ if path_exists(root + "/" + target) == "true" { target } else { TARGET_DEFAULT } }}
+sync:
+    just _sync {{ TARGET_DEFAULT }}
 
 # Internal helper implementations (prefixed with _ for clean encapsulation)
 _vet dest *args="":
@@ -55,7 +63,7 @@ _export dest expr="mxc_vars" *args="":
     #!/usr/bin/env fish
     echo "▶ Compiling CUE variables for {{ dest }}..."
     cd {{ root }}/{{ dest }}; and cue export -e '{{ expr }}' --out yaml > {{ root }}/{{ dest }}/vars-cue.yml.tmp
-    if test "{{ dest }}" = "cluster-home-mxc"; and test -f "{{ root }}/cluster-home/vars.yml"
+    if test "{{ dest }}" = "cluster-home-mxc"; and test -s "{{ root }}/cluster-home/vars.yml"
     	echo "▶ Merging with legacy cluster-home variables..."
     	yq ea 'select(fileIndex == 0) * select(fileIndex == 1)' {{ root }}/cluster-home/vars.yml {{ root }}/{{ dest }}/vars-cue.yml.tmp > {{ root }}/{{ dest }}/vars.yml
     else
@@ -65,12 +73,14 @@ _export dest expr="mxc_vars" *args="":
 
 _diff dest *args="":
     just -f {{ root }}/Justfile clean_build
+    mkdir -p {{ root }}/.build
     just _export {{ dest }}
     echo "▶ Running Kluctl Diff on {{ dest }}..."
     cd {{ root }} && kluctl diff -t {{ dest }} --ignore-kluctl-metadata --replace-on-error --render-output-dir ${BUILD_DIR:-{{ root }}/.build} {{ args }}
 
 _apply dest *args="":
     just -f {{ root }}/Justfile clean_build
+    mkdir -p {{ root }}/.build
     just _export {{ dest }}
     echo "▶ Running Kluctl Deploy on {{ dest }}..."
     cd {{ root }} && kluctl deploy -t {{ dest }} --replace-on-error --render-output-dir ${BUILD_DIR:-{{ root }}/.build} {{ args }}
@@ -86,7 +96,7 @@ _sync dest:
 
 # Run CUE schema test validations and CI checks for Forgejo / GitHub Actions
 [group('mxc')]
-test target=TARGET_DEFAULT *args="":
+test target *args="":
     #!/usr/bin/env fish
     set_color blue
     echo "▶ Starting MXC Validation & CI Test Suite..."
@@ -129,7 +139,7 @@ test target=TARGET_DEFAULT *args="":
     set_color blue
     echo "▶ [Step 3/3] Testing parameters compilation & export (vars.yml)..."
     set_color normal
-    if just export {{ target }} > /dev/null
+    if just export > /dev/null
     	set_color green
     	echo "✓ Environment parameters exported successfully."
     	set_color normal
@@ -157,21 +167,14 @@ schema-export:
 
 # Export adapter-oriented outputs once the corresponding CUE projections exist.
 [group('mxc')]
-export-argocd dest=TARGET_DEFAULT expr="adapters.argocd.output" *args="":
-    just _export \
-    	{{ if path_exists(root + "/" + dest) == "true" { dest } else { TARGET_DEFAULT } }} \
-    	{{ if path_exists(root + "/" + dest) == "true" { expr } else { dest } }} \
-    	{{ if path_exists(root + "/" + dest) == "true" { args } else { trim(expr + " " + args) } }}
+export-argocd expr="adapters.argocd.output" *args="":
+    just _export {{ TARGET_DEFAULT }} {{ expr }} {{ args }}
 
 [group('mxc')]
-export-workflows dest=TARGET_DEFAULT expr="adapters.argoworkflow.output" *args="":
-    just _export \
-    	{{ if path_exists(root + "/" + dest) == "true" { dest } else { TARGET_DEFAULT } }} \
-    	{{ if path_exists(root + "/" + dest) == "true" { expr } else { dest } }} \
-    	{{ if path_exists(root + "/" + dest) == "true" { args } else { trim(expr + " " + args) } }}
+export-workflows expr="adapters.argoworkflow.output" *args="":
+    just _export {{ TARGET_DEFAULT }} {{ expr }} {{ args }}
 
 # Global OCI wrappers. They dispatch artifact-specific tasks so the public
-
 # command surface can stay stable while MXC grows multiple publishable units.
 [group('mxc')]
 oci-package artifact="library" version="" *args="":

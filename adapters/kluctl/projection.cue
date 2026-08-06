@@ -30,152 +30,165 @@ import (
 				}
 			}
 		}
-		// Standard, pre-validated app parameters passed to Kluctl (Flattened categories)
+
+		// Clean, declarative mapping of workloads using the #AppAdapter helper
 		apps: {
 			for catKey, catApps in input.apps {
 				for appKey, appSpec in catApps {
-					"\(appKey)": {
-						appName: appSpec.appName
-						if appSpec.k0rdent != _|_ { k0rdent: appSpec.k0rdent }
-						if appSpec.tags != _|_ { tags: appSpec.tags }
-						deployment: appSpec.deployment
-
-						// Distinguish between app-template workloads and native charts: the
-						// generic bjw-s app-template chart is selected by contextSchema
-						// referencing "#app-template" — deployment stays "kluctl" either way.
-						let contextSchemaList = [
-							if (appSpec.contextSchema & string) != _|_ {appSpec.contextSchema},
-							if (appSpec.contextSchema & [...string]) != _|_ for s in appSpec.contextSchema {s},
-						]
-						let isAppTemplate = len([for s in contextSchemaList if s == "#app-template" {s}]) > 0
-
-						if appSpec.restart != _|_ {
-							restart: {
-								schedule:   appSpec.restart.schedule
-								targetKind: appSpec.restart.targetKind
-								targetName: [if appSpec.restart.targetName != _|_ { appSpec.restart.targetName }, appSpec.appName][0]
-							}
-						}
-
-						if appSpec.kustomize != _|_ || appSpec.restart != _|_ {
-							kustomize: {
-								if appSpec.kustomize != _|_ {
-									for k, v in appSpec.kustomize {
-										if k != "resources" && k != "overlays" {
-											"\(k)": v
-										}
-									}
-								}
-								
-								let defaultResources = [
-									if appSpec.kustomize != _|_ && appSpec.kustomize.resources != _|_ { appSpec.kustomize.resources },
-									["helm-rendered.yaml"]
-								][0]
-
-								resources: list.Concat([
-									defaultResources,
-									[
-										if (appSpec.storage != _|_ && !isAppTemplate) || (appSpec.overlays != _|_ && appSpec.overlays.pvc != _|_) { "overlays/pvc.yaml" },
-										if appSpec.restart != _|_ { "overlays/rollout-restart.yaml" },
-										if appSpec.kustomize != _|_ && appSpec.kustomize.overlays != _|_ { "overlays/cue-overlays.yaml" },
-									]
-								])
-							}
-						}
-
-						if appSpec.kustomize != _|_ && appSpec.kustomize.overlays != _|_ {
-							kustomize_overlays: appSpec.kustomize.overlays
-						}
-
-
-						if appSpec.helmChart != _|_ { helmChart: appSpec.helmChart }
-						if isAppTemplate && appSpec.helmChart == _|_ {
-							helmChart: {
-								repo:         "https://bjw-s-labs.github.io/helm-charts"
-								chartName:    "app-template"
-								chartVersion: "4.6.2"
-								releaseName:  appSpec.appName
-								if appSpec.kustomize != _|_ {
-									namespace:    appSpec.kustomize.namespace
-								}
-								skipCRDs:     false
-								skipPrePull:  true
-							}
-						}
-
-						if isAppTemplate {
-							let baseContext = (app_template.#Projection & {
-								"appSpec":      appSpec
-								"domain":       input.network.domain
-								"ingressClass": input.kube.ingress.class
-							}).output
-
-							context: baseContext
-						}
-
-						if !isAppTemplate {
-							// For native helm charts, pass through custom values/context directly
-							context: {
-								if appSpec.values != _|_ { appSpec.values }
-								if appSpec.values == _|_ && appSpec.context != _|_ { appSpec.context }
-							}
-						}
-
-						if appSpec.storage != _|_ {
-							volumes: {
-								for k, v in appSpec.storage {
-									"\(k)": {
-										size:         v.size
-										storageClass: v.class
-									}
-								}
-							}
-							if !isAppTemplate {
-								overlays: {
-									pvc: [
-										for k, v in appSpec.storage {
-											name:         "\(appSpec.appName)-\(k)"
-											size:         v.size
-											storageClass: v.class
-										}
-									]
-								}
-							}
-						}
-					}
+					"\(appKey)": (#AppAdapter & {
+						"spec":         appSpec
+						"domain":       input.network.domain
+						"ingressClass": input.kube.ingress.class
+					}).output
 				}
 			}
 		}
 
-		// Dynamic overlay rendering projection
+		// Streamlined overlay collections
 		overlays: {
 			if input.networkPolicies != _|_ {
-				networkPolicies: [
-					for k, v in input.networkPolicies {
-						v
-					}
-				]
+				networkPolicies: [for v in input.networkPolicies { v }]
 			}
-			// Collect and concatenate all pvc overlays from all apps using flat nested list comprehension
+			
+			// Flat, self-contained PVC collection
 			pvc: [
-				for groupName, groupApps in input.apps
-				for appName, appSpec in groupApps
+				for catKey, catApps in input.apps
+				for appKey, appSpec in catApps
 				if appSpec.overlays != _|_ && appSpec.overlays.pvc != _|_
 				for pvcItem in appSpec.overlays.pvc {
 					pvcItem
 				}
 			]
-			// Collect other structural overlays natively
-			for groupName, groupApps in input.apps {
-				for appName, appSpec in groupApps {
+
+			// Pass-through of any other non-PVC overlays
+			for catKey, catApps in input.apps {
+				for appKey, appSpec in catApps {
 					if appSpec.overlays != _|_ {
-						for k, v in appSpec.overlays {
-							if k != "pvc" {
-								"\(k)": v
-							}
+						for k, v in appSpec.overlays if k != "pvc" {
+							"\(k)": v
 						}
 					}
 				}
+			}
+		}
+	}
+}
+
+// ============================================================================
+// Private Helper Definitions (Enforcing Clean Separation of Concerns)
+// ============================================================================
+
+#AppAdapter: {
+	spec:         schema.#AppCore
+	domain:       string
+	ingressClass: string
+
+	// Direct polymorphic template resolution by name (removing boolean variables)
+	_templateName: [
+		if spec.valuesSchema != _|_ { spec.valuesSchema },
+		if spec.contextSchema != _|_ { spec.contextSchema },
+		""
+	][0]
+
+	// The compiled projection output for this application
+	output: {
+		appName:    spec.appName
+		deployment: spec.deployment
+		if spec.tags != _|_ { tags: spec.tags }
+		if spec.k0rdent != _|_ { k0rdent: spec.k0rdent }
+
+		// Dynamic restart mappings
+		if spec.restart != _|_ {
+			restart: {
+				schedule:   spec.restart.schedule
+				targetKind: spec.restart.targetKind
+				targetName: [if spec.restart.targetName != _|_ { spec.restart.targetName }, spec.appName][0]
+			}
+		}
+
+		// Optional kustomize definitions
+		if spec.kustomize != _|_ || spec.restart != _|_ {
+			kustomize: {
+				if spec.kustomize != _|_ {
+					for k, v in spec.kustomize {
+						if k != "resources" && k != "overlays" {
+							"\(k)": v
+						}
+					}
+				}
+				
+				let defaultResources = [
+					if spec.kustomize != _|_ && spec.kustomize.resources != _|_ { spec.kustomize.resources },
+					["helm-rendered.yaml"]
+				][0]
+
+				resources: list.Concat([
+					defaultResources,
+					[
+						if (spec.storage != _|_ && _templateName != "#app-template") || (spec.overlays != _|_ && spec.overlays.pvc != _|_) { "overlays/pvc.yaml" },
+						if spec.restart != _|_ { "overlays/rollout-restart.yaml" },
+						if spec.kustomize != _|_ && spec.kustomize.overlays != _|_ { "overlays/cue-overlays.yaml" },
+					]
+				])
+			}
+		}
+
+		if spec.kustomize != _|_ && spec.kustomize.overlays != _|_ {
+			kustomize_overlays: spec.kustomize.overlays
+		}
+
+		// Helm chart resolution
+		if spec.helmChart != _|_ { helmChart: spec.helmChart }
+		if _templateName == "#app-template" && spec.helmChart == _|_ {
+			helmChart: {
+				repo:         "https://bjw-s-labs.github.io/helm-charts"
+				chartName:    "app-template"
+				chartVersion: "4.6.2"
+				releaseName:  spec.appName
+				if spec.kustomize != _|_ {
+					namespace:    spec.kustomize.namespace
+				}
+				skipCRDs:     false
+				skipPrePull:  true
+			}
+		}
+
+		// Optional storage mappings
+		if spec.storage != _|_ {
+			volumes: {
+				for k, v in spec.storage {
+					"\(k)": {
+						size:         v.size
+						storageClass: v.class
+					}
+				}
+			}
+			if _templateName != "#app-template" {
+				overlays: pvc: [
+					for k, v in spec.storage {
+						name:         "\(spec.appName)-\(k)"
+						size:         v.size
+						storageClass: v.class
+					}
+				]
+			}
+		}
+
+		// Polymorphic values resolution
+		if _templateName == "#app-template" {
+			let baseContext = (app_template.#Projection & {
+				"appSpec":      spec
+				"domain":       domain
+				"ingressClass": ingressClass
+			}).output
+
+			context: baseContext
+		}
+
+		if _templateName != "#app-template" {
+			context: {
+				if spec.values != _|_ { spec.values }
+				if spec.values == _|_ && spec.context != _|_ { spec.context }
 			}
 		}
 	}

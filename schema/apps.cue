@@ -1,6 +1,8 @@
 // vim: set ts=2 sw=2 et :
 package schema
 
+#SchemaRef: string | [...string]
+
 #AppCore: {
 	appName: string
 	image?: {
@@ -38,10 +40,10 @@ package schema
 	}
 
 	// Primary schema reference for values shape
-	valuesSchema?: string | [...string]
+	valuesSchema?: #SchemaRef
 
 	// Reference(s) to the values-schema governing `context`'s shape (alias for valuesSchema)
-	contextSchema?: valuesSchema
+	contextSchema?: #SchemaRef
 
 	// Declared secret contract: key names this app expects, defaulting to the
 	// established Jinja placeholder convention ("{{ secrets.<app>.<key> }}"),
