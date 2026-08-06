@@ -460,7 +460,7 @@ mxc-library/stacks/infra/
 For application instances that require custom Kubernetes resources (such as `IngressRoute`, `Middleware`, or additional config maps) without creating complex subdirectory stacks or custom Helm values, developers can leverage the `kustomize.overlays` array.
 
 * **Core Mechanism**: Developers specify raw Kubernetes API objects as native CUE values inside the `kustomize.overlays` list. The Kluctl adapter (`adapters/kluctl/projection.cue`) automatically maps these objects to `kustomize_overlays`.
-* **Dynamic Serialization**: During compilation, these structured CUE objects are projected into a single `overlays/cue-overlays.yaml` file, dynamically serialized into valid multi-document YAML via Jinja filters (`{{ obj | to_yaml }}`), and added to the Kustomize resource stream.
+* **Dynamic Serialization**: During compilation, these structured CUE objects are projected into a single `overlays/mxc-overlays.yaml` file, dynamically serialized into valid multi-document YAML via Jinja filters (`{{ obj | to_yaml }}`), and added to the Kustomize resource stream.
 * **Benefits**:
   1. **Strong Typings**: Avoids typo errors in custom resource fields by validating them directly at compilation time.
   2. **Dry-Run Friendly**: Zero runtime text template interpolation or layout alignment issues.

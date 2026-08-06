@@ -34,7 +34,7 @@ catalog: [...#CRDSource | #SchemaSource] & [
 		repo:      "kubernetes-sigs/kustomize"
 		ref:       "kyaml/v0.14.3"
 		path:      "api/openapi/openapi.json"
-		outputDir: "schema"
+		outputDir: "schema/external"
 	},
 	{
 		type:      "json-schema"
@@ -42,7 +42,7 @@ catalog: [...#CRDSource | #SchemaSource] & [
 		repo:      "bjw-s-labs/helm-charts"
 		ref:       "main"
 		path:      "charts/library/common/values.schema.json"
-		outputDir: "schema"
+		outputDir: "schema/external"
 	},
 ]
 

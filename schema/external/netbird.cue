@@ -1,4 +1,4 @@
-package schema
+package external
 
 import "strings"
 // NBRoutingPeer

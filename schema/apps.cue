@@ -1,6 +1,10 @@
 // vim: set ts=2 sw=2 et :
 package schema
 
+import (
+	"github.com/epcim/mxc/schema/external:external"
+)
+
 #SchemaRef: string | [...string]
 
 #AppCore: {
@@ -11,7 +15,7 @@ package schema
 	}
 	
 	// Kubernetes Service Spec style ports
-	ports: [string]: #PortSpec & {
+	ports: [string]: external.#PortSpec & {
 		port: *8080 | int
 	}
 
@@ -27,7 +31,7 @@ package schema
 	}
 
 	// Dynamic kustomize context mappings matching full upstream schemas
-	kustomize?: #Kustomization
+	kustomize?: external.#Kustomization
 
 	// Primary type-safe configuration values surface
 	values?: {
@@ -44,6 +48,13 @@ package schema
 
 	// Reference(s) to the values-schema governing `context`'s shape (alias for valuesSchema)
 	contextSchema?: #SchemaRef
+
+	if context != _|_ {
+		values: context
+	}
+	if contextSchema != _|_ {
+		valuesSchema: contextSchema
+	}
 
 	// Declared secret contract: key names this app expects, defaulting to the
 	// established Jinja placeholder convention ("{{ secrets.<app>.<key> }}"),
@@ -66,15 +77,13 @@ package schema
 	// Logical tags for stack/feature grouping and cascading (k8s labels & Kluctl tags)
 	tags?: [...string]
 
-	storage?: [string]: #VolumeSpec
+	storage?: [string]: external.#VolumeSpec
 
 	// Application-specific templates or custom overlays configuration
 	overlays?: {
 		[string]: _
 	}
 
-	// Simplified Resources and Sizing Flavors
-	replicaCount?: int
 	flavor?:       string
 
 	// Explicitly define which adapter renders this app's k8s-appliable manifest
@@ -86,20 +95,7 @@ package schema
 	deployment: "kluctl" | "kustomize" | "k0rdent" | "argocd"
 
 	// Extensible helm chart properties for native helm deployments
-	helmChart?: #HelmChartSpec
-
-	// Optional rollout restart cronjob configuration
-	restart?: #RestartSpec
-}
-
-#PortSpec: {
-	port:     int & >=1 & <=65535
-	protocol: "TCP" | "UDP" | *"TCP"
-}
-
-#VolumeSpec: {
-	size:  string
-	class?: string
+	helmChart?: external.#HelmChartSpec
 }
 
 #ResourcesSpec: {
@@ -136,14 +132,3 @@ package schema
 		limits:   { cpu: "4", memory: "4Gi" }
 	}
 }
-
-
-#RestartSpec: {
-	schedule: string
-	targetKind: "Deployment" | "StatefulSet" | "DaemonSet" | *"Deployment"
-	targetName?: string
-}
-
-
-
-

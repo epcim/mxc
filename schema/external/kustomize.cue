@@ -1,4 +1,4 @@
-package schema
+package external
 
 @jsonschema(schema="http://json-schema.org/draft-07/schema#")
 

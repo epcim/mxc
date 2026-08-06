@@ -14,17 +14,20 @@
                 },
                 "context": {
                     "type": "object",
-                    "description": "Extensible helm-values context block passed direct to template/kluctl",
+                    "description": "Extensible helm-values context block (retained for backward compatibility)",
                     "additionalProperties": true
                 },
+                "contextSchema": {
+                    "description": "Reference(s) to the values-schema governing `context`'s shape (alias for valuesSchema)",
+                    "$ref": "#/$defs/SchemaRef"
+                },
                 "deployment": {
-                    "description": "Explicitly define the packaging/deployment format of this application",
+                    "description": "Explicitly define which adapter renders this app's k8s-appliable manifest\nset. \"app-template\" is NOT a deployment value: the generic bjw-s chart is\nstill rendered by kluctl like any other chart — use deployment: \"kluctl\"\nwith contextSchema: \"#app-template\" to select it (see AD-020).\nRequired: no safe implicit default exists across adapters, so an omission\nmust fail cue vet.",
                     "enum": [
-                        "bjw-s",
-                        "app-template",
                         "kluctl",
                         "kustomize",
-                        "k0rdent"
+                        "k0rdent",
+                        "argocd"
                     ]
                 },
                 "expose": {
@@ -96,17 +99,10 @@
                         "$ref": "#/$defs/PortSpec"
                     }
                 },
-                "reloader": {
-                    "description": "Optional Stakater Reloader annotations configuration",
-                    "$ref": "#/$defs/ReloaderSpec"
-                },
-                "replicaCount": {
-                    "type": "integer",
-                    "description": "Simplified Resources and Sizing Flavors"
-                },
-                "restart": {
-                    "description": "Optional rollout restart cronjob configuration",
-                    "$ref": "#/$defs/RestartSpec"
+                "secrets": {
+                    "type": "object",
+                    "description": "Declared secret contract: key names this app expects, defaulting to the\nestablished Jinja placeholder convention (\"{{ secrets.<app>.<key> }}\"),\nresolved by Kluctl/SOPS at apply-time. A real value may unify this away\nonce resolved by an external decrypt step ahead of compilation — see\nAGENTS.md \"Secrets Resolution Strategy\".",
+                    "additionalProperties": true
                 },
                 "storage": {
                     "type": "object",
@@ -120,10 +116,20 @@
                     "items": {
                         "type": "string"
                     }
+                },
+                "values": {
+                    "type": "object",
+                    "description": "Primary type-safe configuration values surface",
+                    "additionalProperties": true
+                },
+                "valuesSchema": {
+                    "description": "Primary schema reference for values shape",
+                    "$ref": "#/$defs/SchemaRef"
                 }
             },
             "required": [
-                "appName"
+                "appName",
+                "deployment"
             ]
         },
         "ConfigMapArgs": {
@@ -599,6 +605,9 @@
                             "type": "string"
                         }
                     }
+                },
+                "overlays": {
+                    "type": "array"
                 },
                 "patches": {
                     "type": "array",
@@ -1363,24 +1372,6 @@
                 "name"
             ]
         },
-        "ReloaderSpec": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-                "auto": {
-                    "type": "boolean",
-                    "description": "Auto-detect and reload on any referenced ConfigMap or Secret changes"
-                },
-                "configmaps": {
-                    "type": "array",
-                    "description": "Watch specific ConfigMaps"
-                },
-                "secrets": {
-                    "type": "array",
-                    "description": "Watch specific Secrets"
-                }
-            }
-        },
         "ReplacementsInline": {
             "oneOf": [
                 {
@@ -1538,26 +1529,17 @@
                 }
             }
         },
-        "RestartSpec": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-                "schedule": {
+        "SchemaRef": {
+            "anyOf": [
+                {
                     "type": "string"
                 },
-                "targetKind": {
-                    "enum": [
-                        "Deployment",
-                        "StatefulSet",
-                        "DaemonSet"
-                    ]
-                },
-                "targetName": {
-                    "type": "string"
+                {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
-            },
-            "required": [
-                "schedule"
             ]
         },
         "SecretArgs": {
@@ -1762,6 +1744,9 @@
                 "class": {
                     "type": "string"
                 },
+                "enabled": {
+                    "type": "boolean"
+                },
                 "size": {
                     "type": "string"
                 }
@@ -1861,6 +1846,12 @@
         "deployAlpha": {
             "description": "Alpha deployment and placement surface. Keep orchestration semantics here\nwhile the final contract shape is still under evaluation.",
             "$ref": "#/$defs/DeployAlpha"
+        },
+        "env": {
+            "type": "object",
+            "additionalProperties": {
+                "type": "string"
+            }
         },
         "environment": {
             "enum": [

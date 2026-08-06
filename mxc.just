@@ -17,8 +17,8 @@ validate *args="":
 
 # Compile CUE and merge it with legacy cluster-home/vars.yml into target vars.yml
 [group('mxc')]
-export expr="mxc_vars" *args="":
-    just _export {{ TARGET_DEFAULT }} {{ expr }} {{ args }}
+export dest=TARGET_DEFAULT expr="mxc_vars" *args="":
+    just _export {{ dest }} {{ expr }} {{ args }}
 
 # Compile and display the fully projected variables of a single application directly to stdout
 [group('mxc')]

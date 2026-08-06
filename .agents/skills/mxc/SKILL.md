@@ -59,24 +59,54 @@ just mxc::export cluster-home-mxc > cluster-home-mxc/vars.yml
 * **workload spec (`apps.cue`):** Focuses strictly on abstract developer requests (`expose: target: "ingress"`, storage sizes). Never leak internal container ports or specific domain suffixes here.
 * **Infrastructure spec (`cluster.cue`):** Maps logical intents to physical cluster capabilities (injecting `storageClass: "longhorn"`, base domains `example.com`, and VIP configurations).
 
-### Principle 2: Native Pluggable Adapter Pattern
-Do not pollute core schemas with target-specific properties. If you need to generate ArgoCD CRDs, Terragrunt variables, or Prometheus rules, implement a custom adapter extending the abstract `#Adapter` interface:
+### Principle 2: Native Pluggable Adapter Pattern & Flat Projection (#Projection)
+Do not pollute core schemas with target-specific properties. If you need to generate ArgoCD CRDs, Terragrunt variables, or Prometheus rules, implement a custom adapter utilizing the approved **Flat Adapter Projection (`#Projection`)** pattern:
 
+1. **Flat Projection Pattern (`#Projection`)**: Avoid over-abstracted wrappers (like `.input` and `.output`). The adapter's top-level fields are the output parameters themselves, dramatically simplifying the evaluation structure.
+2. **Public Scoping for Primary Inputs**: The primary input block MUST be a public field (`cluster: schema.#ClusterConfig`) to allow parametrizing from downstream environment files (e.g. `globals.cue` in `package mxc` instantiating adapters in `package kluctl`). Private fields (prefixed with `_`) are package-private in CUE and cannot be accessed across packages.
+3. **Circular Scoping Mitigation**: To prevent self-referencing loops (e.g. `cluster: cluster`), declare a local alias outside the struct literal (`let _clusterVal = cluster`) and bind it (`cluster: _clusterVal`).
+4. **Post-Export Key Filtering**: To ensure the exported `vars.yml` contains pure, concrete configuration fields, standard exported expressions (like `mxc_vars`) MUST filter out the schema-level `cluster` key:
+   ```cue
+   mxc_vars: {
+       for k, v in adapters.kluctl if k != "cluster" {
+           "\(k)": v
+       }
+   }
+   ```
+5. **Modular Adapter Fixtures (`fixtures.cue`) [Optional]**: Move complex, template-specific default coordinates, storage volumes/overlays mappings, and polymorphic values mappings out of `projection.cue` and into separate `fixtures.cue` (or `fixtures-apptemplate.cue`) files inside the same package. Use CUE's struct-alias pattern (`#AppAdapter: S={ ... }`) inside the fixture files to resolve lexical scope variables (e.g. `S.spec`, `S.domain`) safely and elegantly. This keeps the main projection file clean, high-level, and easy to read.
+
+Example structure:
 ```cue
-package adapters
+package your_adapter
 
 import "github.com/epcim/mxc/schema:schema"
 
-#CustomAdapter: schema.#Adapter & {
-    input: schema.#ClusterConfig
-    output: {
-        // Output format specifically for your deployment target
+// #Projection projects a ClusterConfig into flat parameters
+#Projection: {
+    cluster: schema.#ClusterConfig
+
+    // Flat output fields directly declared at the top-level
+    clusterName: cluster.clusterName
+    environment: cluster.environment
+
+    // Map workloads using our simplified, declarative #AppAdapter
+    apps: {
+        for catKey, catApps in cluster.apps {
+            for appKey, appSpec in catApps {
+                "\(appKey)": #AppAdapter & {
+                    spec:   appSpec
+                    domain: cluster.network.domain
+                }
+            }
+        }
     }
 }
-```
-Validate and export by selecting the specific adapter's output expression:
-```bash
-cue export ./cluster-home-mxc/ -e 'adapters.your_adapter.output' --out yaml
+
+#AppAdapter: {
+    spec:   schema.#AppCore
+    domain: string
+    // flat app output mapping...
+}
 ```
 
 ### Principle 3: Referential Integrity with Key-Mapping

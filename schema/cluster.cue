@@ -1,7 +1,10 @@
 // vim: set ts=2 sw=2 et :
 package schema
 
-import alpha "github.com/epcim/mxc/schema/alpha:alpha"
+import (
+	alpha "github.com/epcim/mxc/schema/alpha:alpha"
+	"github.com/epcim/mxc/schema/external:external"
+)
 
 #ClusterConfig: {
 	clusterName: string
@@ -43,10 +46,11 @@ import alpha "github.com/epcim/mxc/schema/alpha:alpha"
 	// Grouped application specifications by category/group (e.g., example, games, infra, etc.)
 	apps: [Category=string]: [AppKey=string]: #AppCore
 
+
 	// Alpha deployment and placement surface. Keep orchestration semantics here
 	// while the final contract shape is still under evaluation.
 	deployAlpha?: alpha.#DeployAlpha
 
 	// Validated Kubernetes NetworkPolicies
-	networkPolicies?: [string]: #K8sNetworkPolicy
+	networkPolicies?: [string]: external.#K8sNetworkPolicy
 }

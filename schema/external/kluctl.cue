@@ -1,5 +1,5 @@
 // vim: set ts=2 sw=2 et :
-package schema
+package external
 
 // Kluctl Helm Chart specification matching the kluctl schema/structure
 #HelmChartSpec: {

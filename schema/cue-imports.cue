@@ -2,18 +2,15 @@
 package schema
 
 import (
-	corev1 "cue.dev/x/k8s.io/api/core/v1"
-	netv1 "cue.dev/x/k8s.io/api/networking/v1"
-	cert "cue.dev/x/crd/cert-manager.io/v1"
-	acme "cue.dev/x/crd/cert-manager.io/acme/v1"
-	kyverno "cue.dev/x/kyverno/clusterpolicy/v1"
-	dockercompose "cue.dev/x/dockercompose"
+	"github.com/epcim/mxc/schema/external:external"
 )
 
-// Placeholders to keep imports active and fully schema-validated by the compiler
-#K8sPod:                 corev1.#Pod
-#K8sNetworkPolicy:       netv1.#NetworkPolicy
-#CertCertificate:        cert.#Certificate
-#CertChallenge:          acme.#Challenge
-#KyvernoClusterPolicy:   kyverno.#ClusterPolicy
-#DockerComposeConfig:    dockercompose.#Schema
+#K8sPod:                 external.#K8sPod
+#K8sNetworkPolicy:       external.#K8sNetworkPolicy
+#CertCertificate:        external.#CertCertificate
+#CertChallenge:          external.#CertChallenge
+#KyvernoClusterPolicy:   external.#KyvernoClusterPolicy
+#DockerComposeConfig:    external.#DockerComposeConfig
+
+#PortSpec:               external.#PortSpec
+#VolumeSpec:             external.#VolumeSpec
