@@ -1,0 +1,11 @@
+apiVersion: vendir.k14s.io/v1alpha1
+kind: Config
+minimumRequiredVersion: 0.30.0
+
+directories:
+  - path: cue.mod/pkg/github.com/epcim/mxc-library
+    contents:
+      - path: .
+        git:
+          url: ssh://git@forgejo.aalive.familyds.net:2222/apealive/mxc-library.git
+          ref: main

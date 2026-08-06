@@ -49,7 +49,7 @@ _export dest expr="mxc_vars" *args="":
     #!/usr/bin/env fish
     echo "▶ Compiling CUE variables for {{ dest }}..."
     cd {{ root }}/{{ dest }}; and cue export -e '{{ expr }}' --out yaml > {{ root }}/{{ dest }}/vars-cue.yml.tmp
-    if test -f "{{ root }}/cluster-home/vars.yml"
+    if test "{{ dest }}" = "cluster-home-mxc"; and test -f "{{ root }}/cluster-home/vars.yml"
     	echo "▶ Merging with legacy cluster-home variables..."
     	yq ea 'select(fileIndex == 0) * select(fileIndex == 1)' {{ root }}/cluster-home/vars.yml {{ root }}/{{ dest }}/vars-cue.yml.tmp > {{ root }}/{{ dest }}/vars.yml
     else

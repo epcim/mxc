@@ -1,0 +1,7 @@
+network:
+  domain: homelab.lan
+  vips:
+    traefik:
+      address: 192.168.1.50
+    traefik_svc:
+      address: 192.168.1.51

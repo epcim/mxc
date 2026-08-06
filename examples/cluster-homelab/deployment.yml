@@ -1,0 +1,25 @@
+deployments:
+  - path: ../../../mxc-library/bases/namespaces
+    tags: [infra, namespaces]
+
+  - barrier: true
+
+  - path: ../../../mxc-library/adapters/kluctl
+    tags: [infra, traefik]
+    vars:
+      - values: {{ apps.infra.traefik | to_json }}
+
+  - path: ../../../mxc-library/adapters/kluctl
+    tags: [infra, metallb]
+    vars:
+      - values: {{ apps.infra.metallb | to_json }}
+
+  - path: ../../../mxc-library/adapters/kluctl
+    tags: [home, homarr]
+    vars:
+      - values: {{ apps.home.homarr | to_json }}
+
+  - path: ../../../mxc-library/adapters/kluctl
+    tags: [media, silo]
+    vars:
+      - values: {{ apps.media.silo | to_json }}

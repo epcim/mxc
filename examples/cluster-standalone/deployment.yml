@@ -1,0 +1,15 @@
+deployments:
+  - path: ../../../adapters/kluctl
+    tags: [infra, traefik]
+    vars:
+      - values: {{ apps.infra.traefik | to_json }}
+
+  - path: ../../../adapters/kluctl
+    tags: [home, homarr]
+    vars:
+      - values: {{ apps.home.homarr | to_json }}
+
+  - path: ../../../adapters/kluctl
+    tags: [media, silo]
+    vars:
+      - values: {{ apps.media.silo | to_json }}
