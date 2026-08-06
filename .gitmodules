@@ -1,0 +1,3 @@
+[submodule "just"]
+	path = just
+	url = https://github.com/epcim/justfiles

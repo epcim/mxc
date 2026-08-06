@@ -199,13 +199,13 @@ cue import -p schema -f -o mxc/schema/kustomize.cue jsonschema: https://raw.gith
 For custom platform integrations (e.g., NetBird, Traefik, Velero), follow this two-stage pipeline:
 
 * **Stage 1: Fetch and build the JSON Schema**:
-  Use the root `./schema/Justfile` recipes (e.g., `just schema-fetch-netbird`) to download the upstream CRD YAMLs and extract their `openAPIV3Schema` into flat JSON Schemas inside the root `/schema/` directory.
+  Use the root `Justfile` schema recipes (e.g., `just schema fetch nbsetupkeys` to fetch a single entry, or `just schema fetch` to fetch all catalog entries) to download the upstream CRD YAMLs and generate flat JSON Schemas + defaults under their target output directories.
 
 * **Stage 2: Compile as Named CUE Definitions**:
   Convert the generated JSON Schema into a named, structured CUE definition (e.g., `#NBRoutingPeer`) inside `/mxc/schema/`. Use path-labeling (`-l`) and strip redundant package headers to allow clean multi-definition wrapping:
   ```bash
   # Example: Compile NetBird Routing Peer CRD schema into mxc/schema/netbird.cue
-  cue import -p schema -f -o - -l '"#NBRoutingPeer"' jsonschema: schema/netbird.io/nbroutingpeer.schema.json \
+  cue import -p schema -f -o - -l '"#NBRoutingPeer"' jsonschema: mxc-library/stacks/networking/netbird/schema/nbroutingpeer.schema.json \
     | sed 's/"#NBRoutingPeer":/#NBRoutingPeer:/' \
     | grep -v "^package schema" >> mxc/schema/netbird.cue
   ```

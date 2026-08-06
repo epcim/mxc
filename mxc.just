@@ -1,4 +1,4 @@
-set shell := ["bash", "-cu"]
+# set shell := ["bash", "-cu"]
 
 # FIXME, this is not needed shell is by default, but requested fish shell for longer tasks
 
@@ -8,21 +8,21 @@ TARGET_DEFAULT := env("MXC_TARGET", "cluster-home-mxc")
 # Run CUE schema validation (cue vet) against MXC rules
 [group('mxc')]
 vet dest=TARGET_DEFAULT *args="":
-    just mxc::_vet \
+    just _vet \
     	{{ if path_exists(root + "/" + dest) == "true" { dest } else { TARGET_DEFAULT } }} \
     	{{ if path_exists(root + "/" + dest) == "true" { args } else { trim(dest + " " + args) } }}
 
 # Validate MXC schemas and export flow. Alias for the full MXC test suite.
 [group('mxc')]
 validate target=TARGET_DEFAULT *args="":
-    just mxc::test \
+    just test \
     	{{ if path_exists(root + "/" + target) == "true" { target } else { TARGET_DEFAULT } }} \
     	{{ if path_exists(root + "/" + target) == "true" { args } else { trim(target + " " + args) } }}
 
 # Compile CUE and merge it with legacy cluster-home/vars.yml into target vars.yml
 [group('mxc')]
 export dest=TARGET_DEFAULT expr="mxc_vars" *args="":
-    just mxc::_export \
+    just _export \
     	{{ if path_exists(root + "/" + dest) == "true" { dest } else { TARGET_DEFAULT } }} \
     	{{ if path_exists(root + "/" + dest) == "true" { expr } else { dest } }} \
     	{{ if path_exists(root + "/" + dest) == "true" { args } else { trim(expr + " " + args) } }}
@@ -30,21 +30,21 @@ export dest=TARGET_DEFAULT expr="mxc_vars" *args="":
 # Compile, export, and preview deployment differences on the cluster (allows extra kluctl args)
 [group('mxc')]
 diff dest=TARGET_DEFAULT *args="":
-    just mxc::_diff \
+    just _diff \
     	{{ if path_exists(root + "/" + dest) == "true" { dest } else { TARGET_DEFAULT } }} \
     	{{ if path_exists(root + "/" + dest) == "true" { args } else { trim(dest + " " + args) } }}
 
 # Compile, export, and apply/deploy configurations to the cluster (uses active KUBECONFIG, allows extra kluctl args)
 [group('mxc')]
 apply dest=TARGET_DEFAULT *args="":
-    just mxc::_apply \
+    just _apply \
     	{{ if path_exists(root + "/" + dest) == "true" { dest } else { TARGET_DEFAULT } }} \
     	{{ if path_exists(root + "/" + dest) == "true" { args } else { trim(dest + " " + args) } }}
 
 # Sync CUE packages/libraries (such as mxc-library) via vendir if vendir.yml exists
 [group('mxc')]
 sync target=TARGET_DEFAULT:
-    just mxc::_sync \
+    just _sync \
     	{{ if path_exists(root + "/" + target) == "true" { target } else { TARGET_DEFAULT } }}
 
 # Internal helper implementations (prefixed with _ for clean encapsulation)
@@ -65,13 +65,13 @@ _export dest expr="mxc_vars" *args="":
 
 _diff dest *args="":
     just clean_build
-    just mxc::_export {{ dest }}
+    just _export {{ dest }}
     echo "▶ Running Kluctl Diff on {{ dest }}..."
     cd {{ root }} && kluctl diff -t {{ dest }} --ignore-kluctl-metadata --replace-on-error --render-output-dir ${BUILD_DIR:-{{ root }}/.build} {{ args }}
 
 _apply dest *args="":
     just clean_build
-    just mxc::_export {{ dest }}
+    just _export {{ dest }}
     echo "▶ Running Kluctl Deploy on {{ dest }}..."
     cd {{ root }} && kluctl deploy -t {{ dest }} --replace-on-error --render-output-dir ${BUILD_DIR:-{{ root }}/.build} {{ args }}
 
@@ -129,7 +129,7 @@ test target=TARGET_DEFAULT *args="":
     set_color blue
     echo "▶ [Step 3/3] Testing parameters compilation & export (vars.yml)..."
     set_color normal
-    if just mxc::export {{ target }} > /dev/null
+    if just export {{ target }} > /dev/null
     	set_color green
     	echo "✓ Environment parameters exported successfully."
     	set_color normal
@@ -158,14 +158,14 @@ schema-export:
 # Export adapter-oriented outputs once the corresponding CUE projections exist.
 [group('mxc')]
 export-argocd dest=TARGET_DEFAULT expr="adapters.argocd.output" *args="":
-    just mxc::_export \
+    just _export \
     	{{ if path_exists(root + "/" + dest) == "true" { dest } else { TARGET_DEFAULT } }} \
     	{{ if path_exists(root + "/" + dest) == "true" { expr } else { dest } }} \
     	{{ if path_exists(root + "/" + dest) == "true" { args } else { trim(expr + " " + args) } }}
 
 [group('mxc')]
 export-workflows dest=TARGET_DEFAULT expr="adapters.argoworkflow.output" *args="":
-    just mxc::_export \
+    just _export \
     	{{ if path_exists(root + "/" + dest) == "true" { dest } else { TARGET_DEFAULT } }} \
     	{{ if path_exists(root + "/" + dest) == "true" { expr } else { dest } }} \
     	{{ if path_exists(root + "/" + dest) == "true" { args } else { trim(expr + " " + args) } }}
@@ -175,11 +175,11 @@ export-workflows dest=TARGET_DEFAULT expr="adapters.argoworkflow.output" *args="
 # command surface can stay stable while MXC grows multiple publishable units.
 [group('mxc')]
 oci-package artifact="library" version="" *args="":
-    just mxc::_oci-package {{ artifact }} {{ version }} {{ args }}
+    just _oci-package {{ artifact }} {{ version }} {{ args }}
 
 [group('mxc')]
 oci-publish artifact="library" version="" *args="":
-    just mxc::_oci-publish {{ artifact }} {{ version }} {{ args }}
+    just _oci-publish {{ artifact }} {{ version }} {{ args }}
 
 _oci-package artifact version="" *args="":
     #!/usr/bin/env bash
