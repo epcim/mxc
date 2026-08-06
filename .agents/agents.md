@@ -87,7 +87,7 @@ mxc-library/stacks/infra/
 ### 5. CUE-Defined Kustomize Overlays (`kustomize.overlays`)
 For application instances that require custom Kubernetes resources (such as `IngressRoute`, `Middleware`, or additional config maps) without creating complex subdirectory stacks, developers can use the `kustomize.overlays` list parameter.
 
-* **Type-Safe Serialization**: Developers specify raw Kubernetes API objects as native CUE values in the `kustomize.overlays` list. The compiler projects these directly into `overlays/cue-overlays.yaml`, serialized as multi-document YAML via Jinja, and includes them automatically in the Kustomize resource list.
+* **Type-Safe Serialization**: Developers specify raw Kubernetes API objects as native CUE values in the `kustomize.overlays` list. The compiler projects these directly into `overlays/mxc-overlays.yaml`, serialized as multi-document YAML via Jinja, and includes them automatically in the Kustomize resource list.
 * **No Side-Effects**: This allows for complete, verified workloads to be defined inside a single, clean `.cue` file, keeping everything structurally validated and eliminating dynamic variable interpolation errors.
 
 Example:

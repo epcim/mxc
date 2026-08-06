@@ -89,4 +89,11 @@ import (
 			}
 		}
 	}
+
+	// Filtered output parameters for the Kluctl engine
+	output: {
+		for k, v in P if k != "cluster" && k != "output" {
+			"\(k)": v
+		}
+	}
 }

@@ -11,6 +11,7 @@ import (
 	appSpec:      schema.#AppCore
 	domain:       string
 	ingressClass: string
+	annotations:  [string]: string | *{}
 
 	// Safely resolve optional ports with a concrete empty struct fallback
 	let portsVal = (appSpec & { ports: {} }).ports
@@ -98,7 +99,11 @@ import (
 						tls: [{
 							hosts: [fqdn]
 						}]
-						if v.annotations != _|_ { annotations: v.annotations }
+						let mergedAnnotations = [
+							if v.annotations != _|_ { annotations & v.annotations },
+							annotations
+						][0]
+						if len(mergedAnnotations) > 0 { annotations: mergedAnnotations }
 					}
 				}
 			}

@@ -62,10 +62,24 @@ just mxc::export cluster-home-mxc > cluster-home-mxc/vars.yml
 ### Principle 2: Native Pluggable Adapter Pattern & Flat Projection (#Projection)
 Do not pollute core schemas with target-specific properties. If you need to generate ArgoCD CRDs, Terragrunt variables, or Prometheus rules, implement a custom adapter utilizing the approved **Flat Adapter Projection (`#Projection`)** pattern:
 
-1. **Flat Projection Pattern (`#Projection`)**: Avoid over-abstracted wrappers (like `.input` and `.output`). The adapter's top-level fields are the output parameters themselves, dramatically simplifying the evaluation structure.
-2. **Public Scoping for Primary Inputs**: The primary input block MUST be a public field (`cluster: schema.#ClusterConfig`) to allow parametrizing from downstream environment files (e.g. `globals.cue` in `package mxc` instantiating adapters in `package kluctl`). Private fields (prefixed with `_`) are package-private in CUE and cannot be accessed across packages.
-3. **Circular Scoping Mitigation**: To prevent self-referencing loops (e.g. `cluster: cluster`), declare a local alias outside the struct literal (`let _clusterVal = cluster`) and bind it (`cluster: _clusterVal`).
-4. **Post-Export Key Filtering**: To ensure the exported `vars.yml` contains pure, concrete configuration fields, standard exported expressions (like `mxc_vars`) MUST filter out the schema-level `cluster` key:
+1. **Top-Ordering of #AppAdapter**: `#AppAdapter` MUST always be defined first inside each `projection.cue` file (directly below the package header and import blocks). This guarantees instant readability of the individual application parameters translation layer before looking at the bulk cluster-wide `#Projection` structures.
+2. **Decoupled Metadata Assignment**: To prevent parameter leakage, `#BaseAppAdapter` in `schema/adapter.cue` defines only universally safe attributes (`appName`, `deployment`). Sibling adapters must explicitly repeat only the direct metadata assignments they actually utilize inside their own `#AppAdapter.output` definition block:
+   ```cue
+   // Example inside kluctl output adapter
+   #AppAdapter: S=schema.#BaseAppAdapter & {
+       output: {
+           // Direct metadata delivery: explicitly maps only consumed properties
+           if S.spec.tags != _|_ { tags: S.spec.tags }
+           if S.spec.secrets != _|_ { secrets: S.spec.secrets }
+           if S.spec.values != _|_ { values: S.spec.values }
+           ...
+       }
+   }
+   ```
+3. **Flat Projection Pattern (`#Projection`)**: Avoid over-abstracted wrappers (like `.input` and `.output`). The adapter's top-level fields are the output parameters themselves, dramatically simplifying the evaluation structure.
+4. **Public Scoping for Primary Inputs**: The primary input block MUST be a public field (`cluster: schema.#ClusterConfig`) to allow parametrizing from downstream environment files (e.g. `globals.cue` in `package mxc` instantiating adapters in `package kluctl`). Private fields (prefixed with `_`) are package-private in CUE and cannot be accessed across packages.
+5. **Circular Scoping Mitigation**: To prevent self-referencing loops (e.g. `cluster: cluster`), declare a local alias outside the struct literal (`let _clusterVal = cluster`) and bind it (`cluster: _clusterVal`).
+6. **Post-Export Key Filtering**: To ensure the exported `vars.yml` contains pure, concrete configuration fields, standard exported expressions (like `mxc_vars`) MUST filter out the schema-level `cluster` key:
    ```cue
    mxc_vars: {
        for k, v in adapters.kluctl if k != "cluster" {
@@ -73,13 +87,22 @@ Do not pollute core schemas with target-specific properties. If you need to gene
        }
    }
    ```
-5. **Modular Adapter Fixtures (`fixtures.cue`) [Optional]**: Move complex, template-specific default coordinates, storage volumes/overlays mappings, and polymorphic values mappings out of `projection.cue` and into separate `fixtures.cue` (or `fixtures-apptemplate.cue`) files inside the same package. Use CUE's struct-alias pattern (`#AppAdapter: S={ ... }`) inside the fixture files to resolve lexical scope variables (e.g. `S.spec`, `S.domain`) safely and elegantly. This keeps the main projection file clean, high-level, and easy to read.
+7. **Modular Adapter Fixtures (`fixtures.cue`) [Optional]**: Move complex, template-specific default coordinates, storage volumes/overlays mappings, and polymorphic values mappings out of `projection.cue` and into separate `fixtures.cue` (or `fixtures-apptemplate.cue`) files inside the same package. Use CUE's struct-alias pattern (`#AppAdapter: S={ ... }`) inside the fixture files to resolve lexical scope variables (e.g. `S.spec`, `S.domain`) safely and elegantly. This keeps the main projection file clean, high-level, and easy to read.
 
 Example structure:
 ```cue
 package your_adapter
 
 import "github.com/epcim/mxc/schema:schema"
+
+// #AppAdapter is always defined FIRST at the top of the file!
+#AppAdapter: S=schema.#BaseAppAdapter & {
+    output: {
+        // Explicit metadata mappings used by this adapter
+        if S.spec.tags != _|_ { tags: S.spec.tags }
+        if S.spec.values != _|_ { values: S.spec.values }
+    }
+}
 
 // #Projection projects a ClusterConfig into flat parameters
 #Projection: {
@@ -93,19 +116,10 @@ import "github.com/epcim/mxc/schema:schema"
     apps: {
         for catKey, catApps in cluster.apps {
             for appKey, appSpec in catApps {
-                "\(appKey)": #AppAdapter & {
-                    spec:   appSpec
-                    domain: cluster.network.domain
-                }
+                "\(appKey)": (#AppAdapter & { spec: appSpec }).output
             }
         }
     }
-}
-
-#AppAdapter: {
-    spec:   schema.#AppCore
-    domain: string
-    // flat app output mapping...
 }
 ```
 
@@ -180,7 +194,7 @@ mxc-library/stacks/infra/
 ### Principle 9: CUE-Defined Kustomize Overlays (`kustomize.overlays`)
 For application instances that require custom Kubernetes resources (such as `IngressRoute`, `Middleware`, or additional config maps) without creating complex subdirectory stacks, developers can use the `kustomize.overlays` list parameter.
 
-* **Type-Safe Serialization**: Developers specify raw Kubernetes API objects as native CUE values in the `kustomize.overlays` list. The compiler projects these directly into `overlays/cue-overlays.yaml`, serialized as multi-document YAML via Jinja, and includes them automatically in the Kustomize resource list.
+* **Type-Safe Serialization**: Developers specify raw Kubernetes API objects as native CUE values in the `kustomize.overlays` list. The compiler projects these directly into `overlays/mxc-overlays.yaml`, serialized as multi-document YAML via Jinja, and includes them automatically in the Kustomize resource list.
 ### Principle 10: Reshaping and Automating the Projection Layer (Future Resiliency)
 To stop the high frequency of manual updates within the `projection.cue` translation layers when new application features are added, we have established a strict plan to reshape and automate this pipeline.
 * **Practice**: Avoid manually hardcoding specific parameters (like `reloader` or `restart`) inside the central `mxc/adapters/kluctl/projection.cue` kernel. Instead, future additions must favor highly generic metadata pass-through blocks, automated schema-driven code generation, and post-rendering validation checks (such as the KRM pipeline model).
