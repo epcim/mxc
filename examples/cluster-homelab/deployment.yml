@@ -8,6 +8,10 @@ deployments:
     tags: [infra, traefik]
     vars:
       - values: {{ apps.infra.traefik | to_json }}
+      - values:
+          secrets:
+            infra:
+              admin: {{ secrets.infra.admin | to_json }}
 
   - path: ../../../mxc-library/adapters/kluctl
     tags: [infra, metallb]
@@ -18,8 +22,15 @@ deployments:
     tags: [home, homarr]
     vars:
       - values: {{ apps.home.homarr | to_json }}
+      - values:
+          secrets:
+            homarr: {{ secrets.homarr | to_json }}
 
   - path: ../../../mxc-library/adapters/kluctl
     tags: [media, silo]
     vars:
       - values: {{ apps.media.silo | to_json }}
+      - values:
+          secrets:
+            media:
+              silo: {{ secrets.media.silo | to_json }}
