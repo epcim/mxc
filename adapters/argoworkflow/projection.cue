@@ -54,4 +54,12 @@ import (
 			}
 		}
 	}
+
+	// Consolidated output block for export tasks
+	output: {
+		if len(workflowTemplates) > 0 {
+			"workflowTemplates": workflowTemplates
+		}
+	}
 }
+

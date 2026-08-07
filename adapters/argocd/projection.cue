@@ -114,4 +114,18 @@ import (
 			"\(appSpec.appName)": (#AppAdapter & { spec: appSpec, cluster: P.cluster }).output
 		}
 	}
+
+	// 3. Consolidated output block for export tasks
+	output: {
+		if len(applicationSets) > 0 {
+			"applicationSets": applicationSets
+		}
+		if len(services) > 0 {
+			"services": services
+		}
+		if len(overrides) > 0 {
+			"overrides": overrides
+		}
+	}
 }
+
