@@ -9,6 +9,9 @@ import (
 // #AppAdapter handles the 1:1 parameter delivery for a single application.
 // All complex validation resides inside the schema layer (validation.cue / apps.cue).
 #AppAdapter: S=schema.#BaseAppAdapter & {
+	let _isAppTemplate = len([for s in [if (S.spec.valuesSchema & string) != _|_ { [S.spec.valuesSchema] }, if (S.spec.valuesSchema & [...string]) != _|_ { S.spec.valuesSchema }, []][0] if s == "#app-template" {s}]) > 0
+	let _hasPVC = (S.spec.storage != _|_ && !_isAppTemplate) || (S.spec.overlays != _|_ && S.spec.overlays.pvc != _|_) || (output.overlays != _|_ && output.overlays.pvc != _|_)
+
 	output: {
 		// Direct metadata delivery
 		if S.spec.tags != _|_ { tags: S.spec.tags }
@@ -16,6 +19,7 @@ import (
 		if S.spec.secrets != _|_ { secrets: S.spec.secrets }
 		if S.spec.values != _|_ { values: S.spec.values }
 		if S.spec.kustomize != _|_ { kustomize_spec: S.spec.kustomize }
+		if S.spec.overlays != _|_ { overlays: S.spec.overlays }
 
 		// Pass-through or generate kustomize file-lists
 		if S.spec.kustomize != _|_ {
@@ -33,6 +37,9 @@ import (
 					defaultResources,
 					[
 						if S.spec.kustomize.overlays != _|_ { "overlays/mxc-overlays.yaml" },
+					],
+					[
+						if _hasPVC { "overlays/pvc.yaml" },
 					]
 				])
 			}
@@ -54,9 +61,8 @@ import (
 			for appKey, appSpec in catApps
 			if list.Contains(_supported, appSpec.deployment) {
 				"\(appKey)": (#AppAdapter & {
-					"spec":         appSpec
-					"domain":       P.cluster.network.domain
-					"ingressClass": P.cluster.kube.ingress.class
+					"spec":    appSpec
+					"cluster": P.cluster
 				}).output
 			}
 		}
@@ -70,10 +76,9 @@ import (
 		
 		// Flat, transparent collection of PVCs for the deployment runtime
 		pvc: [
-			for catKey, catApps in P.cluster.apps
-			for appKey, appSpec in catApps
-			if appSpec.overlays != _|_ && appSpec.overlays.pvc != _|_
-			for pvcItem in appSpec.overlays.pvc {
+			for appKey, appOut in apps
+			if appOut.overlays != _|_ && appOut.overlays.pvc != _|_
+			for pvcItem in appOut.overlays.pvc {
 				pvcItem
 			}
 		]

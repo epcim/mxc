@@ -111,7 +111,7 @@ import (
 		for catKey, catApps in P.cluster.apps
 		for appKey, appSpec in catApps
 		if list.Contains(_supported, appSpec.deployment) {
-			"\(appSpec.appName)": (#AppAdapter & { spec: appSpec }).output
+			"\(appSpec.appName)": (#AppAdapter & { spec: appSpec, cluster: P.cluster }).output
 		}
 	}
 }

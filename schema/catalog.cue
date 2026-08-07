@@ -15,6 +15,7 @@ package schema
 	repo:      string          // GitHub "owner/repo" the schema is fetched from
 	ref:       string | *"main" // pinned branch/tag -- bump deliberately when re-vendoring, see AD-021
 	path:      string          // path to the schema within repo
+	url:       string | *"https://raw.githubusercontent.com/\(repo)/\(ref)/\(path)" // full upstream source URI
 	outputDir: string          // repo-root-relative dir the schema lands in
 }
 
@@ -24,6 +25,7 @@ package schema
 	repo:      string          // GitHub "owner/repo" the CRD YAML is fetched from
 	ref:       string | *"main" // pinned branch/tag -- bump deliberately when re-vendoring, see AD-021
 	path:      string          // path to the CRD YAML within repo
+	url:       string | *"https://raw.githubusercontent.com/\(repo)/\(ref)/\(path)" // full upstream source URI
 	outputDir: string          // repo-root-relative dir the CRD yaml + generated schema/defaults land in
 }
 

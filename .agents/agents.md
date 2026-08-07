@@ -116,6 +116,15 @@ To stop the high frequency of manual updates within the `projection.cue` transla
 * **Practice**: Avoid manually hardcoding specific parameters (like `reloader` or `restart`) inside the central `mxc/adapters/kluctl/projection.cue` kernel. Instead, future additions must favor highly generic metadata pass-through blocks, automated schema-driven code generation, and post-rendering validation checks (such as the KRM pipeline model).
 * **Reference**: Refer to the central [**`TODO.md`**](TODO.md) file at the root of the `mxc/` context for detailed action items, design concepts, and development trackers.
 
+### 7. The Phased Deprecation & Backward-Compatibility Pattern
+When refactoring schema-level fields or parameters in the core compiler schema (`mxc/schema/`), always maintain 100% backward-compatibility. Since external stack configurations (`mxc-library`) and target environments expect stable variables, schema updates must be executed using a **three-step phased deprecation pattern** rather than breaking immediate cuts:
+
+1. **Step 1: Double-Representation & Auto-Derivation**: Keep legacy properties on the core interfaces (e.g., `#BaseAppAdapter`), but automatically compute/derive their values under-the-hood from the new source of truth. Mark the legacy properties clearly with a `// TODO: Deprecate...` comment.
+2. **Step 2: Downstream Migration**: Update downstream repositories (`mxc-library` stacks) and user cluster configs to start consuming the new parameters/structures.
+3. **Step 3: Cleanup**: Once all consumers have migrated, safely delete the legacy properties and their auto-derivation blocks from the core compiler schemas.
+
+This ensures zero compilation or parameter-rendering disruption across target platforms during major refactoring efforts.
+
 ---
 
 ## 🛠️ Verification Checklist (Before Ending Your Turn)

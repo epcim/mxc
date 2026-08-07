@@ -26,7 +26,6 @@ import (
 				"\(k)": {
 					enabled: true
 					type:    "persistentVolumeClaim"
-					global:  "\(appSpec.appName)-\(k)"
 				}
 			}
 		}
@@ -38,8 +37,8 @@ import (
 			if isEnabled {
 				"\(k)": {
 					enabled:       true
+					type:          "persistentVolumeClaim"
 					existingClaim: "\(appSpec.appName)-\(k)"
-					global:        "\(appSpec.appName)-\(k)"
 				}
 			}
 		}
@@ -49,8 +48,8 @@ import (
 // Kluctl adapter extension to populate app-template deployment schemas
 #KluctlExtension: {
 	spec:         schema.#AppCore
-	domain:       string
-	ingressClass: string
+	cluster:      schema.#ClusterConfig
+
 	output: {
 		helmChart: #DefaultChart & {
 			releaseName: spec.appName
@@ -66,12 +65,24 @@ import (
 			let _storage = #Storage & { appSpec: spec }
 			volumes:     _storage.volumes
 			persistence: _storage.persistence
+			overlays: pvc: [
+				for k, v in spec.storage {
+					name:         "\(spec.appName)-\(k)"
+					size:         v.size
+					storageClass: v.class
+				}
+			]
 		}
 
 		context: (#Projection & {
-			"appSpec":      spec
-			"domain":       domain
-			"ingressClass": ingressClass
-		}).output
+			"appSpec": spec
+			"cluster": cluster
+		}).output & {
+			if spec.storage != _|_ {
+				let _storage = #Storage & { appSpec: spec }
+				persistence: _storage.persistence
+				volumes:     _storage.volumes
+			}
+		}
 	}
 }

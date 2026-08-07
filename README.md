@@ -40,6 +40,38 @@ For production-grade, multi-cluster organizations, the optional `mxc-library` re
 
 ---
 
+## ✨ Core Features & Advanced Capabilities
+
+### 🛡️ Upstream Chart Schema Vendoring & Typo Protection
+
+To prevent parameter drift and catch syntax or configuration errors before any manifests are generated or deployed, MXC supports **Upstream Chart Schema Vendoring**:
+
+* **Catalog-Driven Vendoring**: External Helm chart schemas are registered declaratively in our central `schema/catalog.cue` definition.
+* **Automatic Compilation & Import**: Running `cue cmd vendor-schema` downloads and compiles these official `values.schema.json` schemas (or `values.yaml` fallback) into native CUE definitions (`values_schema.cue`) nested directly inside the respective stack directories.
+* **Compile-Time Typo Protection**: Unifying the imported `#ValuesSchema` definition with the application's `values` or `context` field instantly blocks the build if an invalid parameter is introduced.
+
+#### 💡 Example: Typo Protection in Action
+
+If you introduce a typo (such as setting `installCRD_typo: false` instead of `installCRDs: false`) inside `cert-manager.cue`:
+
+```cue
+context: #ValuesSchema & {
+    installCRD_typo: false
+}
+```
+
+Running `just mxc::validate` or `cue vet` instantly blocks compilation:
+
+```text
+#CertManager.context.installCRD_typo: field not allowed:
+    ./cue.mod/pkg/github.com/epcim/mxc/schema/apps.cue:52:5
+    ./stacks/infra/cert-manager/cert-manager.cue:27:3
+```
+
+This guarantees offline, type-safe validations against official upstream chart constraints in milliseconds!
+
+---
+
 ## 🚀 Quick Start Guide
 
 ### Prerequisites

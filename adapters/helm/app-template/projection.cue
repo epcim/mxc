@@ -9,9 +9,11 @@ import (
 // Helper to project an abstract AppCore definition to standard bjw-s app-template values format
 #Projection: {
 	appSpec:      schema.#AppCore
-	domain:       string
-	ingressClass: string
-	annotations:  [string]: string | *{}
+	cluster:      schema.#ClusterConfig
+
+	let domain = cluster.network.domain
+	let ingressClass = cluster.kube.ingress.class
+	let _ingressAnnotations = [if cluster.kube.ingress.annotations != _|_ { cluster.kube.ingress.annotations }, {}][0]
 
 	// Safely resolve optional ports with a concrete empty struct fallback
 	let portsVal = (appSpec & { ports: {} }).ports
@@ -99,10 +101,18 @@ import (
 						tls: [{
 							hosts: [fqdn]
 						}]
-						let mergedAnnotations = [
-							if v.annotations != _|_ { annotations & v.annotations },
-							annotations
-						][0]
+						let mergedAnnotations = {
+							for _k, _val in _ingressAnnotations {
+								if v.annotations == _|_ || v.annotations[_k] == _|_ {
+									"\(_k)": _val
+								}
+							}
+							if v.annotations != _|_ {
+								for _k, _val in v.annotations {
+									"\(_k)": _val
+								}
+							}
+						}
 						if len(mergedAnnotations) > 0 { annotations: mergedAnnotations }
 					}
 				}

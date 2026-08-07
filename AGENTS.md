@@ -534,6 +534,15 @@ Stack definitions inside the same `mxc-library/stacks/<category>` directory shar
 * **Example (monitoring stack)**: `#Grafana`'s datasource wiring references `#Mimir.kustomize.namespace` and `#Loki.appName` directly instead of each app separately hardcoding the others' namespace/service name. If `#Mimir`'s namespace ever changes, every consumer picks it up automatically.
 * **Scope**: only within the same package (same category directory). Across categories/packages, use the normal override-site wiring (`cluster-home-mxc/apps-*.cue`) instead — don't add cross-package imports between stack files just to avoid one literal.
 
+### 10. The Phased Deprecation & Backward-Compatibility Pattern
+When refactoring schema-level fields or parameters in the core compiler schema (`mxc/schema/`), always maintain 100% backward-compatibility. Since external stack configurations (`mxc-library`) and target environments expect stable variables, schema updates must be executed using a **three-step phased deprecation pattern** rather than breaking immediate cuts:
+
+1. **Step 1: Double-Representation & Auto-Derivation**: Keep legacy properties on the core interfaces (e.g., `#BaseAppAdapter`), but automatically compute/derive their values under-the-hood from the new source of truth. Mark the legacy properties clearly with a `// TODO: Deprecate...` comment.
+2. **Step 2: Downstream Migration**: Update downstream repositories (`mxc-library` stacks) and user cluster configs to start consuming the new parameters/structures.
+3. **Step 3: Cleanup**: Once all consumers have migrated, safely delete the legacy properties and their auto-derivation blocks from the core compiler schemas.
+
+This ensures zero compilation or parameter-rendering disruption across target platforms during major refactoring efforts.
+
 ---
 
 ## 🌐 FQDN & `expose` Convention

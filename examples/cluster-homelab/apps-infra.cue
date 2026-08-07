@@ -4,6 +4,7 @@
 package mxc
 
 import (
+	// Example: Import the infra stack package from the mxc-library repository (not just single app)
 	sinf "github.com/epcim/mxc-library/stacks/infra"
 )
 

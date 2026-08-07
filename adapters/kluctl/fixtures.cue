@@ -13,6 +13,7 @@ import (
 	spec:         _
 	domain:       _
 	ingressClass: _
+	annotations?: [string]: string
 
 	let _isAppTemplate = len([for s in [if (S.spec.valuesSchema & string) != _|_ { [S.spec.valuesSchema] }, if (S.spec.valuesSchema & [...string]) != _|_ { S.spec.valuesSchema }, []][0] if s == "#app-template" {s}]) > 0
 

@@ -4,11 +4,11 @@
 package mxc
 
 import (
-	shmr "github.com/epcim/mxc-library/stacks/home/homarr"
+	_homarr "github.com/epcim/mxc-library/stacks/home/homarr"
 )
 
 cluster: apps: home: {
-	homarr: shmr.#Homarr & {
+	homarr: _homarr.#Homarr & {
 		expose: http: fqdn: "homarr.\(cluster.network.domain)"
 	}
 }

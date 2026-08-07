@@ -4,11 +4,16 @@
 package mxc
 
 import (
-	smed "github.com/epcim/mxc-library/stacks/media"
+	// Package-private import alias to avoid lexical scope shadowing.
+	// In CUE, a struct field label (like `silo:`) shadows an imported package
+	// of the same name. We import the package using a private alias starting
+	// with an underscore (`_silo`) to safely refer to the schema (like `_silo.#Silo`)
+	// within its struct block.
+	_silo "github.com/epcim/mxc-library/stacks/media/silo"
 )
 
 cluster: apps: media: {
-	silo: smed.#Silo & {
+	silo: _silo.#Silo & {
 		expose: http: fqdn: "silo.\(cluster.network.domain)"
 		secrets: {
 			secretKey: "{{ secrets.media.silo.secretKey }}"

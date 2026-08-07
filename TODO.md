@@ -24,8 +24,15 @@ Currently, [`mxc/adapters/kluctl/projection.cue`](adapters/kluctl/projection.cue
 ### ⬜ Task 1.2: Decoupled Multi-Cluster Overlay Slices
 *   **Concept**: Decouple deployment-specific overlays (like network policies or custom PVC bindings) from the global parameter flattener.
 *   **Action Items**:
-    1.  Shift global overlays compilation out of `projection.cue` into independent CUE overlay generators matching the "Subscriber & Validator" pattern.
-    2.  Allow apps to declare local, self-contained overlay payloads that are projected directly into output directories, removing the global `overlays` unification bottleneck.
+1.  Shift global overlays compilation out of `projection.cue` into independent CUE overlay generators matching the "Subscriber & Validator" pattern.
+2.  Allow apps to declare local, self-contained overlay payloads that are projected directly into output directories, removing the global `overlays` unification bottleneck.
+
+### ⬜ Task 1.3: Enforce Phased Deprecations for Schema Changes
+*   **Concept**: Maintain perfect, 100% backward-compatibility when modifying schema definitions. Rather than making immediate breaking cuts, changes must occur in a phased deprecation pattern to prevent breaking downstream stack repositories or user cluster configs.
+*   **Action Items**:
+1.  When refactoring fields, retain legacy properties as auto-derived/computed fields unified under-the-hood from the new source of truth.
+2.  Annotate deprecated properties clearly with a `// TODO: Deprecate...` statement.
+3.  Plan migrations in three steps: (1) schema supports both new and derived old fields, (2) update external repos (`mxc-library`) to use new fields, (3) safely clean up old fields.
 
 ---
 

@@ -226,6 +226,15 @@ Every `cluster-*-mxc/apps-*.cue` file imports one or more `mxc-library/stacks/<n
 
 **Never alias an import to the exact name of the enclosing struct field it will be used under** (e.g. importing `stacks/cicd` as bare `cicd` inside a file defining `cluster: apps: cicd: {...}`). CUE resolves a bare identifier from the nearest enclosing scope — when the alias matches the enclosing field's own label, a reference inside that field's value resolves to the field itself (self-reference), not the import. The import is then never actually consumed and `cue vet` fails with `imported and not used`, even though the alias is visibly present in the file. This has hit twice in this codebase (`cicd`/`scic`, `kluctl`/`adp_kluctl`) — the `s`-prefix (or `adp_`-prefix for adapters) convention exists specifically to make this collision structurally impossible.
 
+### Principle 14: The Phased Deprecation & Backward-Compatibility Pattern
+When refactoring schema-level fields or parameters in the core compiler schema (`mxc/schema/`), always maintain 100% backward-compatibility. Since external stack configurations (`mxc-library`) and target environments expect stable variables, schema updates must be executed using a **three-step phased deprecation pattern** rather than breaking immediate cuts:
+
+1. **Step 1: Double-Representation & Auto-Derivation**: Keep legacy properties on the core interfaces (e.g., `#BaseAppAdapter`), but automatically compute/derive their values under-the-hood from the new source of truth. Mark the legacy properties clearly with a `// TODO: Deprecate...` comment.
+2. **Step 2: Downstream Migration**: Update downstream repositories (`mxc-library` stacks) and user cluster configs to start consuming the new parameters/structures.
+3. **Step 3: Cleanup**: Once all consumers have migrated, safely delete the legacy properties and their auto-derivation blocks from the core compiler schemas.
+
+This ensures zero compilation or parameter-rendering disruption across target platforms during major refactoring efforts.
+
 ---
 
 ## 📥 Schema Acquisition & Storage Workflows

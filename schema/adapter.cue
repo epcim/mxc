@@ -20,15 +20,19 @@ package schema
 
 // BaseAppAdapter defines the standard 1:1 adapter interface for a single workload.
 #BaseAppAdapter: {
-	spec:     #AppCore
-	cluster?: #ClusterConfig
+	spec:    #AppCore
+	cluster: #ClusterConfig
 
 	// TODO: Deprecate individual flat mapping of cluster-level globals below,
 	// and instead have adapters directly consume the `cluster` object itself.
-	clusterName?: string
-	environment?: string
-	domain:       string
-	ingressClass: string
+	clusterName:  cluster.clusterName
+	environment:  cluster.environment
+	domain:       cluster.network.domain
+	ingressClass: cluster.kube.ingress.class
+	annotations?: [string]: string
+	if cluster.kube.ingress.annotations != _|_ {
+		annotations: cluster.kube.ingress.annotations
+	}
 
 	output: {
 		appName:    spec.appName

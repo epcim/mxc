@@ -50,6 +50,11 @@ diff *args="":
 apply *args="":
     just _apply {{ args }}
 
+# Compile, export, and render offline manifests directly to the build directory (purely offline, does not contact cluster)
+[group('mxc-ops')]
+build *args="":
+    just _build {{ args }}
+
 # Sync CUE packages/libraries (such as mxc-library) via vendir if vendir.yml exists
 [group('mxc-ops')]
 sync:
@@ -71,17 +76,18 @@ _export dest expr="mxc_vars" *args="":
     end
     rm -f {{ root }}/{{ dest }}/vars-cue.yml.tmp
 
-_diff *args="":
+_build *args="":
     #!/usr/bin/env fish
     set -l dest "{{ TARGET_DEFAULT }}"
     set -l kluctl_args
 
-    if test (count $argv) -gt 0
-    	if test -d "{{ root }}/$argv[1]"
-    		set dest $argv[1]
-    		set kluctl_args $argv[2..-1]
+    set -l raw_args (string split -n ' ' -- "{{ args }}")
+    if test (count $raw_args) -gt 0
+    	if test -d "{{ root }}/$raw_args[1]"
+    		set dest $raw_args[1]
+    		set kluctl_args $raw_args[2..-1]
     	else
-    		set kluctl_args $argv
+    		set kluctl_args $raw_args
     	end
     end
 
@@ -93,20 +99,59 @@ _diff *args="":
     just -f {{ root }}/Justfile clean_build
     mkdir -p $build_dir
     just _export $dest
+    echo "▶ Rendering offline manifests for $dest into $build_dir..."
+    echo "  \$ kluctl render -t $dest --offline-kubernetes --render-output-dir $build_dir $kluctl_args"
+    cd {{ root }} && kluctl render -t $dest --offline-kubernetes --render-output-dir $build_dir $kluctl_args
+
+_diff *args="":
+    #!/usr/bin/env fish
+    set -l dest "{{ TARGET_DEFAULT }}"
+    set -l kluctl_args
+
+    set -l raw_args (string split -n ' ' -- "{{ args }}")
+    if test (count $raw_args) -gt 0
+    	if test -d "{{ root }}/$raw_args[1]"
+    		set dest $raw_args[1]
+    		set kluctl_args $raw_args[2..-1]
+    	else
+    		set kluctl_args $raw_args
+    	end
+    end
+
+    set -l build_dir "{{ root }}/.build"
+    if set -q BUILD_DIR
+    	set build_dir $BUILD_DIR
+    end
+    trap "rm -rf $build_dir" EXIT
+
+    just -f {{ root }}/Justfile clean_build
+    mkdir -p $build_dir
+    just _export $dest
+
+    # Filter out deploy-only/apply-only flags (like --prune, --force-apply) which are not supported by diff
+    set -l diff_args
+    for arg in $kluctl_args
+        if not test "$arg" = "--prune" -o "$arg" = "--force-apply"
+            set -a diff_args $arg
+        end
+    end
+
     echo "▶ Running Kluctl Diff on $dest..."
-    cd {{ root }} && kluctl diff -t $dest --ignore-kluctl-metadata --replace-on-error --render-output-dir $build_dir $kluctl_args
+    echo "  \$ kluctl diff -t $dest --ignore-kluctl-metadata --replace-on-error --render-output-dir $build_dir $diff_args"
+    cd {{ root }} && kluctl diff -t $dest --ignore-kluctl-metadata --replace-on-error --render-output-dir $build_dir $diff_args
 
 _apply *args="":
     #!/usr/bin/env fish
     set -l dest "{{ TARGET_DEFAULT }}"
     set -l kluctl_args
 
-    if test (count $argv) -gt 0
-    	if test -d "{{ root }}/$argv[1]"
-    		set dest $argv[1]
-    		set kluctl_args $argv[2..-1]
+    set -l raw_args (string split -n ' ' -- "{{ args }}")
+    if test (count $raw_args) -gt 0
+    	if test -d "{{ root }}/$raw_args[1]"
+    		set dest $raw_args[1]
+    		set kluctl_args $raw_args[2..-1]
     	else
-    		set kluctl_args $argv
+    		set kluctl_args $raw_args
     	end
     end
 
@@ -114,12 +159,50 @@ _apply *args="":
     if set -q BUILD_DIR
     	set build_dir $BUILD_DIR
     end
+    trap "rm -rf $build_dir" EXIT
 
     just -f {{ root }}/Justfile clean_build
     mkdir -p $build_dir
     just _export $dest
-    echo "▶ Running Kluctl Deploy on $dest..."
-    cd {{ root }} && kluctl deploy -t $dest --replace-on-error --render-output-dir $build_dir $kluctl_args
+
+    # Separate diff-supported arguments and deployment-specific arguments
+    set -l diff_args
+    set -l deploy_args
+    set -l has_non_interactive 0
+    for arg in $kluctl_args
+        set -a deploy_args $arg
+        if not test "$arg" = "--prune" -o "$arg" = "--force-apply"
+            set -a diff_args $arg
+        end
+        if test "$arg" = "--yes" -o "$arg" = "-y" -o "$arg" = "--dry-run"
+            set has_non_interactive 1
+        end
+    end
+
+    if test $has_non_interactive -eq 1
+        echo "▶ Running Kluctl Deploy (non-interactive) on $dest..."
+        echo "  \$ kluctl deploy -t $dest --replace-on-error --render-output-dir $build_dir $deploy_args"
+        cd {{ root }} && kluctl deploy -t $dest --replace-on-error --render-output-dir $build_dir $deploy_args
+    else
+        echo "▶ Calculating clean deployment diff for $dest..."
+        echo "  \$ kluctl diff -t $dest --ignore-kluctl-metadata --replace-on-error --render-output-dir $build_dir $diff_args"
+        cd {{ root }} && kluctl diff -t $dest --ignore-kluctl-metadata --replace-on-error --render-output-dir $build_dir $diff_args
+        
+        set_color -o yellow
+        read -P "❓ Do you want to apply/deploy these changes to $dest? (y/N) " -l confirm
+        set_color normal
+        
+        if test "$confirm" = "y" -o "$confirm" = "Y"
+            echo "▶ Executing Kluctl Deploy..."
+            echo "  \$ kluctl deploy -t $dest --replace-on-error --render-output-dir $build_dir --yes $deploy_args"
+            cd {{ root }} && kluctl deploy -t $dest --replace-on-error --render-output-dir $build_dir --yes $deploy_args
+        else
+            set_color red
+            echo "❌ Deployment canceled."
+            set_color normal
+            exit 1
+        end
+    end
 
 _sync dest:
     #!/usr/bin/env fish

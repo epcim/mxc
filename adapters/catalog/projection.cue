@@ -63,7 +63,7 @@ import (
 	apps: {
 		for catKey, catApps in P.cluster.apps
 		for appKey, appSpec in catApps {
-			"\(appSpec.appName)": (#AppAdapter & { spec: appSpec }).output
+			"\(appSpec.appName)": (#AppAdapter & { spec: appSpec, cluster: P.cluster }).output
 		}
 	}
 }
