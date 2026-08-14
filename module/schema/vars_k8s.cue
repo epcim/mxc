@@ -4,7 +4,7 @@
 package schema
 
 @jsonschema(schema="http://json-schema.org/draft-07/schema#")
-@jsonschema(id="https://raw.githubusercontent.com/epcim/mxc/main/schema/vars-k8s.schema.json")
+@jsonschema(id="https://raw.githubusercontent.com/epcim/mxc/main/docs/generated-schema/vars-k8s.schema.json")
 kube?: {
 	// Kubernetes distribution type
 	type!: "microk8s" | "k3s" | "talos" | "eks" | "gke" | "aks" | "kind" | "kwok"

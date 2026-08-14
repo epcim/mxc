@@ -81,7 +81,7 @@ We do **not** want to force every end-user to specify AWS credentials or Proxmox
 We wrap infrastructure definitions in conditional blocks. Schema validation constraints are **only activated** if the domain is explicitly selected/enabled:
 
 ```cue
-// mxc/schema/infrastructure.cue
+// mxc/module/schema/infrastructure.cue
 package schema
 
 #AwsConfig: {

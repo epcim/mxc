@@ -1,5 +1,5 @@
-// Schema: [apps.cue](../../schema/apps.cue#L4) -> schema.#AppCore
-// cue-language-server: $schema=../../schema/mxc-cluster.schema.json
+// Schema: [apps.cue](../../module/schema/apps.cue#L4) -> schema.#AppCore
+// cue-language-server: $schema=../../docs/generated-schema/mxc-cluster.schema.json
 // vim: set ts=2 sw=2 et :
 package mxc
 

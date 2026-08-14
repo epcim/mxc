@@ -1,16 +1,16 @@
-// Schema: [apps.cue](../../schema/apps.cue#L4) -> schema.#AppCore
-// cue-language-server: $schema=../../schema/mxc-cluster.schema.json
+// Schema: [apps.cue](../../module/schema/apps.cue#L4) -> schema.#AppCore
+// cue-language-server: $schema=../../docs/generated-schema/mxc-cluster.schema.json
 // vim: set ts=2 sw=2 et :
 package mxc
 
 import (
-	// Example: Import the infra stack package from the mxc-library repository (not just single app)
-	sinf "github.com/epcim/mxc-library/stacks/infra"
+	metal "github.com/epcim/mxc-library/stacks/infra/metallb"
+	traef "github.com/epcim/mxc-library/stacks/infra/traefik"
 )
 
 cluster: apps: infra: {
-	metallb: sinf.#MetalLB & {
-		context: {
+	metallb: metal.#MetalLB & {
+		values: {
 			l2advertisement: {
 				"default-l2": {
 					ipAddressPools: ["default-pool"]
@@ -23,7 +23,7 @@ cluster: apps: infra: {
 		}
 	}
 
-	traefik: sinf.#Traefik & {
+	traefik: traef.#Traefik & {
 		flavor: "custom"
 		kustomize: {
 			namespace: "sys"
@@ -34,7 +34,7 @@ cluster: apps: infra: {
 		helmChart: {
 			releaseName: "traefik"
 		}
-		context: {
+		values: {
 			fullnameOverride: "traefik"
 			globalArguments: [
 				"--providers.kubernetesingress.ingressendpoint.ip=\(cluster.network.vips.traefik.address)",

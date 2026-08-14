@@ -188,24 +188,6 @@
                 }
             }
         },
-        "DeployAlpha": {
-            "type": "object",
-            "additionalProperties": true,
-            "properties": {
-                "apiVersion": {
-                    "type": "string"
-                },
-                "kind": {
-                    "type": "string"
-                },
-                "targets": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "$ref": "#/$defs/TargetAlpha"
-                    }
-                }
-            }
-        },
         "FieldSelector": {
             "type": "object",
             "description": "Contains the fieldPath to an object field",
@@ -1351,27 +1333,6 @@
                 "port"
             ]
         },
-        "RefAlpha": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-                "kind": {
-                    "enum": [
-                        "stack",
-                        "instance",
-                        "target",
-                        "external"
-                    ]
-                },
-                "name": {
-                    "type": "string"
-                }
-            },
-            "required": [
-                "kind",
-                "name"
-            ]
-        },
         "ReplacementsInline": {
             "oneOf": [
                 {
@@ -1633,31 +1594,6 @@
                 }
             }
         },
-        "StackInstanceAlpha": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-                "context": {
-                    "type": "object",
-                    "additionalProperties": true
-                },
-                "dependsOn": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/$defs/RefAlpha"
-                    }
-                },
-                "enabled": {
-                    "type": "boolean"
-                },
-                "stack": {
-                    "type": "string"
-                }
-            },
-            "required": [
-                "stack"
-            ]
-        },
         "Target": {
             "type": "object",
             "additionalProperties": false,
@@ -1685,31 +1621,6 @@
             "required": [
                 "name"
             ]
-        },
-        "TargetAlpha": {
-            "type": "object",
-            "additionalProperties": true,
-            "properties": {
-                "context": {
-                    "type": "object",
-                    "additionalProperties": true
-                },
-                "dependsOn": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/$defs/RefAlpha"
-                    }
-                },
-                "enabled": {
-                    "type": "boolean"
-                },
-                "instances": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "$ref": "#/$defs/StackInstanceAlpha"
-                    }
-                }
-            }
         },
         "Time": {
             "type": "string"
@@ -1842,10 +1753,6 @@
         },
         "clusterName": {
             "type": "string"
-        },
-        "deployAlpha": {
-            "description": "Alpha deployment and placement surface. Keep orchestration semantics here\nwhile the final contract shape is still under evaluation.",
-            "$ref": "#/$defs/DeployAlpha"
         },
         "env": {
             "type": "object",

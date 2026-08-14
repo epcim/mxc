@@ -16,7 +16,7 @@ To eliminate this manual friction, we propose writing **Pluggable Output Network
 
 ## 🔌 2. The Shared Network Portfolio (Input Data Source)
 
-Both adapters will consume the existing `#NetworkConfig` defined inside `mxc/schema/vars_net.cue` (which models NetBox exports). This means any changes to VLANs, gateways, or subnet CIDRs inside NetBox automatically flow through to Proxmox and UniFi!
+Both adapters will consume the existing `#NetworkConfig` defined inside `mxc/module/schema/vars_net.cue` (which models NetBox exports). This means any changes to VLANs, gateways, or subnet CIDRs inside NetBox automatically flow through to Proxmox and UniFi!
 
 ```cue
 // Reference snippet of vars_net.cue

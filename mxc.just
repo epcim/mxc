@@ -6,7 +6,8 @@ root := clean(source_dir() + "/..")
 TARGET_DEFAULT := `echo "${TARGET:-cluster-home-mxc}" | sed -E 's/(-mxc)?$/-mxc/'`
 GHCR_USER := env_var_or_default("GHCR_USER", "epcim")
 OCI_VERSION := env_var_or_default("OCI_VERSION", "v0.1.0")
-_registry_config := "file:" + root + "/mxc/cue.mod/registry.cue"
+_module_dir := root + "/mxc/module"
+_registry_config := "file:" + root + "/mxc/registry.cue"
 
 # Run CUE schema validation (cue vet) against MXC rules
 [group('mxc')]
@@ -221,19 +222,19 @@ _sync dest:
 test-alpha:
     #!/usr/bin/env bash
     set -euo pipefail
-    cue vet {{ root }}/mxc/schema/...
-    cue vet {{ root }}/mxc/test/topology_alpha.cue
-    cue export {{ root }}/mxc/test/topology_alpha.cue -e alphaMultiClusterFixture --out json | jq -e '.clusters.gc01.cluster.clusterName == "gc01" and .deploy.instances["kafka-gc"].appInstance == "kafka-gc" and (.deploy.instances["kafka-ce"].placement.clusters | length) == 2' >/dev/null
-    cue export {{ root }}/mxc/test/topology_alpha.cue -e adapterIdentityFixture --out json | jq -e '.simple.appInstance == "kafka" and .deployed.appInstance == "kafka-gc" and .customized.appInstance == "kafka-shard-0"' >/dev/null
-    if cue eval {{ root }}/mxc/test/topology_alpha.cue -e 'alphaMultiClusterFixture & {deploy: instances: invalid: {app: _kafkaSpec, placement: clusters: []}}' >/dev/null 2>&1; then
+    (cd {{ _module_dir }} && cue vet ./schema/...)
+    (cd {{ root }}/mxc/test && cue vet ./...)
+    (cd {{ root }}/mxc/test && cue export ./topology_alpha.cue -e alphaMultiClusterFixture --out json) | jq -e '.clusters.gc01.cluster.clusterName == "gc01" and .deploy.instances["kafka-gc"].appInstance == "kafka-gc" and (.deploy.instances["kafka-ce"].placement.clusters | length) == 2' >/dev/null
+    (cd {{ root }}/mxc/test && cue export ./topology_alpha.cue -e adapterIdentityFixture --out json) | jq -e '.simple.appInstance == "kafka" and .deployed.appInstance == "kafka-gc" and .customized.appInstance == "kafka-shard-0"' >/dev/null
+    if (cd {{ root }}/mxc/test && cue eval ./topology_alpha.cue -e 'alphaMultiClusterFixture & {deploy: instances: invalid: {app: _kafkaSpec, placement: clusters: []}}') >/dev/null 2>&1; then
         echo "Empty placement unexpectedly accepted" >&2
         exit 1
     fi
-    if cue eval {{ root }}/mxc/test/topology_alpha.cue -e 'alphaMultiClusterFixture & {deploy: instances: "kafka-gc": instanceName: ""}' >/dev/null 2>&1; then
+    if (cd {{ root }}/mxc/test && cue eval ./topology_alpha.cue -e 'alphaMultiClusterFixture & {deploy: instances: "kafka-gc": instanceName: ""}') >/dev/null 2>&1; then
         echo "Empty instance name unexpectedly accepted" >&2
         exit 1
     fi
-    cue eval {{ root }}/mxc/test/topology_alpha.cue -e 'alphaMultiClusterFixture & {deploy: instances: extra: {app: _kafkaSpec, placement: clusters: ["gc01"]}}' >/dev/null
+    (cd {{ root }}/mxc/test && cue eval ./topology_alpha.cue -e 'alphaMultiClusterFixture & {deploy: instances: extra: {app: _kafkaSpec, placement: clusters: ["gc01"]}}') >/dev/null
 
 [group('mxc')]
 test target *args="":
@@ -247,7 +248,7 @@ test target *args="":
     set_color blue
     echo "▶ [Step 1/3] Checking core CUE schema compilation..."
     set_color normal
-    if cue vet {{ root }}/mxc/schema/...
+    if (cd {{ _module_dir }} && cue vet ./schema/...)
     	set_color green
     	echo "✓ Core CUE schemas compiled successfully."
     	set_color normal
@@ -264,7 +265,7 @@ test target *args="":
     set_color blue
     echo "▶ [Step 2/3] Validating Docker Compose configuration against cue.dev/x/ curated registry..."
     set_color normal
-    if cue vet -d '#ComposeConfig' {{ root }}/mxc/test/validate_compose.cue {{ root }}/mxc/test/docker-compose.test.yml
+    if (cd {{ root }}/mxc/test && cue vet -d '#ComposeConfig' ./validate_compose.cue ./docker-compose.test.yml)
     	set_color green
     	echo "✓ Docker Compose configuration is 100% valid."
     	set_color normal
@@ -301,10 +302,10 @@ test target *args="":
 schema-export:
     #!/usr/bin/env bash
     echo "▶ Exporting custom CUE schemas to JSON Schema..."
-    (cd {{ root }}/mxc && cue export ./schema/vars_net.cue --out jsonschema) > {{ root }}/mxc/schema/vars-net.schema.json
-    (cd {{ root }}/mxc && cue export ./schema/vars_k8s.cue --out jsonschema) > {{ root }}/mxc/schema/vars-k8s.schema.json
-    (cd {{ root }}/mxc && cue export ./schema --out jsonschema -e '#ClusterConfig') > {{ root }}/mxc/schema/mxc-cluster.schema.json
-    echo "✓ Successfully exported vars-net.schema.json, vars-k8s.schema.json, and mxc-cluster.schema.json inside mxc/schema/!"
+    (cd {{ _module_dir }} && cue export ./schema/vars_net.cue --out jsonschema) > {{ root }}/mxc/docs/generated-schema/vars-net.schema.json
+    (cd {{ _module_dir }} && cue export ./schema/vars_k8s.cue --out jsonschema) > {{ root }}/mxc/docs/generated-schema/vars-k8s.schema.json
+    (cd {{ _module_dir }} && cue export ./schema --out jsonschema -e '#ClusterConfig') > {{ root }}/mxc/docs/generated-schema/mxc-cluster.schema.json
+    echo "✓ Exported JSON schemas into mxc/docs/generated-schema/."
 
 # Export adapter-oriented outputs once the corresponding CUE projections exist.
 [group('mxc')]
@@ -345,11 +346,12 @@ oci-publish artifact="core" version=OCI_VERSION *args="": ghcr-login
 _oci-package artifact version="" *args="":
     #!/usr/bin/env bash
     set -euo pipefail
+    export CUE_REGISTRY='{{ _registry_config }}'
     case "{{ artifact }}" in \
       core) \
-        cd "{{ root }}/mxc" && cue mod tidy && cue vet ./schema/... && cue vet ./adapters/... && just test-alpha && CUE_REGISTRY='{{ _registry_config }}' cue mod publish "{{ version }}" --dry-run --json {{ args }} ;; \
+        cd "{{ _module_dir }}" && cue mod tidy --check && cue vet ./schema/... && cue vet ./adapters/... && just -f "{{ root }}/mxc/Justfile" test-alpha && cue mod publish "{{ version }}" --dry-run --json {{ args }} ;; \
       library) \
-        cd "{{ root }}/mxc-library" && cue mod tidy && cue vet ./... ;; \
+        cd "{{ root }}/mxc-library/module" && cue mod tidy --check && cue vet ./... && cue mod publish "{{ version }}" --dry-run --json {{ args }} ;; \
       *) \
         echo "Unsupported OCI artifact: {{ artifact }}" >&2; exit 1 ;; \
     esac
@@ -357,11 +359,12 @@ _oci-package artifact version="" *args="":
 _oci-publish artifact version="" *args="":
     #!/usr/bin/env bash
     set -euo pipefail
+    export CUE_REGISTRY='{{ _registry_config }}'
     case "{{ artifact }}" in \
       core) \
-        cd "{{ root }}/mxc" && cue mod tidy && cue vet ./schema/... && cue vet ./adapters/... && just test-alpha && CUE_REGISTRY='{{ _registry_config }}' cue mod publish "{{ version }}" {{ args }} ;; \
+        cd "{{ _module_dir }}" && cue mod tidy --check && cue vet ./schema/... && cue vet ./adapters/... && just -f "{{ root }}/mxc/Justfile" test-alpha && cue mod publish "{{ version }}" {{ args }} ;; \
       library) \
-        cd "{{ root }}/mxc-library" && cue mod tidy && cue vet ./... && CUE_REGISTRY='{{ _registry_config }}' cue mod publish "{{ version }}" {{ args }} ;; \
+        cd "{{ root }}/mxc-library/module" && cue mod tidy --check && cue vet ./... && cue mod publish "{{ version }}" {{ args }} ;; \
       *) \
         echo "Unsupported OCI artifact: {{ artifact }}" >&2; exit 1 ;; \
     esac

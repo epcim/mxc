@@ -27,8 +27,8 @@ MXC configurations depend on the upstream `mxc-library` platform schemas. This e
 
 ### Option A: Local Workspace Monorepo (Default)
 When checking out this repo inside the `gitops-infra` monorepo, dependencies are mapped cleanly using static Git-tracked symlinks under `cue.mod/pkg/`:
-* `cue.mod/pkg/github.com/epcim/mxc` -> Symlinked directly to `./mxc/` root
-* `cue.mod/pkg/github.com/epcim/mxc-library` -> Symlinked directly to parent `./mxc-library/`
+* `cue.mod/pkg/github.com/epcim/mxc` -> Symlinked to `./mxc/module/`
+* `cue.mod/pkg/github.com/epcim/mxc-library` -> Symlinked to `./mxc-library/module/`
 
 This allows zero-network editing and rapid iteration with no installation overhead!
 

@@ -191,7 +191,7 @@ Historically, writing this type of typed glue code was a high-friction adoption 
 ### Phase 2: Modeling Identity & Structure
 
 #### Pattern 3: A shared application schema with computed fields
-Platform engineers typically spread naming conventions, DNS patterns, and ingress rules across dozens of files, wiki pages, and pipelines. MXC consolidates this into a single, shared base schema in `mxc/schema/apps.cue`:
+Platform engineers typically spread naming conventions, DNS patterns, and ingress rules across dozens of files, wiki pages, and pipelines. MXC consolidates this into a single, shared base schema in `mxc/module/schema/apps.cue`:
 
 ```cue
 #App: k8s.#FieldSchemas & {

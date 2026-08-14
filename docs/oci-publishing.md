@@ -4,14 +4,40 @@ MXC publishes the CUE module `github.com/epcim/mxc` to
 `ghcr.io/epcim/mxc`. GitHub remains the source repository; GHCR is the
 versioned distribution channel consumed by CUE.
 
+The publishable module root is `module/`. CUE publishes only tracked files
+below that directory:
+
+```text
+module/cue.mod/module.cue
+module/schema/**/*.cue
+module/adapters/**/*.cue
+module/adapters/**/*.yml
+module/adapters/**/*.yaml
+```
+
 ## Prerequisites
 
-1. Create a GitHub Personal Access Token owned by a user with package-write
-   access to the `epcim` namespace.
-2. Grant the token `read:packages` and `write:packages`. Add `repo` only when
-   required for private repositories or packages.
-3. Do not store the token in `.env`, `.envrc`, Git, or command history.
-4. Install `cue`, `just`, `jq`, and Docker.
+1. Create a GitHub Personal Access Token (classic) owned by a user with package
+   write access to the `epcim` namespace. GitHub documents classic PATs as the
+   supported authentication method for publishing to GHCR.
+2. Grant these token scopes:
+
+   | Scope | Requirement | Purpose |
+   |---|---|---|
+   | `write:packages` | Required | Upload new CUE module versions to GHCR. |
+   | `read:packages` | Required | Read package metadata and verify published versions. |
+   | `repo` | Only for private repositories/packages | Access packages linked to a private source repository. It is not needed for a public repository and public package. |
+   | `delete:packages` | Not required | Needed only to delete package versions; normal publication must not require it. |
+
+3. Do not grant unrelated scopes such as `admin:org`, `workflow`, or
+   `delete_repo`.
+4. If `epcim` is an organization using SAML SSO, authorize the PAT for that
+   organization after creating it.
+5. Ensure the token owner has permission to publish packages in `epcim`. The
+   GHCR namespace does not have to match the login username, but that user must
+   have package-write access to the namespace.
+6. Do not store the token in `.env`, `.envrc`, Git, or command history.
+7. Install `cue`, `just`, `jq`, and Docker.
 
 The repository `.envrc` supplies the non-secret default:
 
@@ -33,8 +59,9 @@ just ghcr-status
 
 ## Prepare the Release
 
-CUE modules with `source: kind: "git"` can only be published from a clean Git
-worktree. Commit and push the intended release before packaging:
+CUE modules with `source: kind: "git"` can only be published when the tracked
+module subtree is clean. Commit and push the intended module changes before
+packaging:
 
 ```bash
 git status --short
@@ -45,6 +72,13 @@ git push origin main
 
 Review the commit before publishing. A published semantic version should be
 treated as immutable.
+
+Repository-only files outside `module/` are not part of the artifact. Confirm
+the module subtree itself is clean with:
+
+```bash
+git status --short -- module
+```
 
 ## Validate and Package
 
@@ -103,7 +137,7 @@ mapping:
 mkdir /tmp/mxc-consumer
 cd /tmp/mxc-consumer
 cue mod init example.local/mxc-consumer
-export CUE_REGISTRY='file:/path/to/mxc/cue.mod/registry.cue'
+export CUE_REGISTRY='file:/path/to/mxc/registry.cue'
 cue mod get github.com/epcim/mxc@v0.1.0
 ```
 

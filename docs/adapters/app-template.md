@@ -14,7 +14,7 @@ upstream Helm chart.
 
 ## Pinned version
 
-**`4.6.2`**, hardcoded in `mxc/adapters/kluctl/projection.cue`'s synthesized `helmChart` block
+**`4.6.2`**, hardcoded in `mxc/module/adapters/kluctl/projection.cue`'s synthesized `helmChart` block
 (`repo`/`chartName`/`chartVersion`) — this is the *only* place the version is set; every app using
 this adapter shares it.
 
@@ -29,7 +29,7 @@ every field this adapter emits against the new chart's values schema, not just e
 
 This adapter is selected by `contextSchema: "#app-template"` on an `#AppCore` app (`deployment`
 stays `"kluctl"` — see AD-020 in `docs/ARCH_DECISIONS.md`), *not* by a dedicated `deployment` value.
-`mxc/adapters/kluctl/projection.cue` detects this via its `isAppTemplate` check and, when true:
+`mxc/module/adapters/kluctl/projection.cue` detects this via its `isAppTemplate` check and, when true:
 
 1. Synthesizes the `helmChart` block above (apps never set their own chart coordinates for this
    case — only native, non-app-template charts set `helmChart` explicitly).
@@ -50,7 +50,7 @@ vendor/validate pipeline described in `AGENTS-TODO.md`.
 
 ## Placement
 
-This adapter lives under `mxc/adapters/` only — it is a core, generic projection every standalone
+This adapter lives under `mxc/module/adapters/` only — it is a core, generic projection every standalone
 `mxc` + cluster config can render without depending on `mxc-library` (see `mxc/AGENTS.md` §10.6,
 "Independence of Core Adapters"). Application-*specific* content (per-app overlays, stack
 definitions that use this adapter via `contextSchema: "#app-template"`) belongs in `mxc-library`,

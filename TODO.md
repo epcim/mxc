@@ -6,7 +6,7 @@ This document tracks planned architectural refactors, automations, and enhanceme
 
 ## 🚀 The Core Challenge: High-Frequency Projection Updates
 
-Currently, [`mxc/adapters/kluctl/projection.cue`](adapters/kluctl/projection.cue) and its child adapters translate abstract workload specifications (`#AppCore`) to target physical charts (like `bjw-s app-template`) using **explicit, hardcoded key-by-key mappings**.
+Currently, [`mxc/module/adapters/kluctl/projection.cue`](module/adapters/kluctl/projection.cue) and its child adapters translate abstract workload specifications (`#AppCore`) to target physical charts (like `bjw-s app-template`) using **explicit, hardcoded key-by-key mappings**.
 
 *   **Symptoms**: Adding a new workload capability (e.g., custom annotator, new PVC structure, additional sidecars, or volume mount parameters) requires editing the central `projection.cue` files.
 *   **The Goal**: Establish a robust, self-sustaining compiler design where **the adapter layer works without requiring updates for routine configuration adjustments or new app fields**.

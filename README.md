@@ -15,18 +15,13 @@ This repository is designed to be **fully self-contained and standalone-ready**,
 
 ```text
 mxc/
-├── schema/             # Compiler Rules (#AppCore, #ClusterConfig)
-│   ├── apps.cue        # Workload schemas, ports, and restart specs
-│   ├── kluctl.cue      # Standard Kluctl deployment schemas
-│   ├── cluster.cue     # Platform FQDN and ingress configurations
-│   ├── vars_net.cue    # NetBox-compatible network vip mappings
-│   └── vars_k8s.cue    # Kubernetes storage/platform presets
-├── adapters/           # Platform Adapters
-│   ├── app_template/   # bjw-s app-template logical projection
-│   ├── kluctl/         # Generic Kluctl render manifests & overlays (PVCs, restarts)
-│   └── kustomize-only/ # Direct Kustomize manifest injections
+├── module/             # Publishable github.com/epcim/mxc CUE module
+│   ├── cue.mod/
+│   ├── schema/         # Compiler rules (#AppCore, #ClusterConfig)
+│   └── adapters/       # Kluctl, Helm, Kustomize, ArgoCD and catalog adapters
 ├── docs/               # Platform documentation & slideshows
-└── test/               # Schema integration tests & Docker compose mocks
+├── examples/           # Consumer examples, not included in OCI
+└── test/               # Schema integration tests, not included in OCI
 ```
 
 ### 1. Standalone Mode vs. Library Mode

@@ -4,6 +4,31 @@
 
 ### Changed
 
+#### Repository and OCI module layout
+
+- The publishable CUE module moved from the repository root to `module/`.
+- The CUE module identity remains `github.com/epcim/mxc`; consumer import paths
+  such as `github.com/epcim/mxc/schema` and
+  `github.com/epcim/mxc/adapters/kluctl` are unchanged.
+- Local examples and tests now resolve the core module from `module/`.
+- Generated JSON schemas moved from `schema/` to `docs/generated-schema/`.
+- Adapter documentation moved outside the publishable module where it is not
+  required at runtime.
+
+The core OCI artifact now includes only:
+
+```text
+module/cue.mod/module.cue
+module/schema/**/*.cue
+module/adapters/**/*.cue
+module/adapters/**/*.yml
+module/adapters/**/*.yaml
+```
+
+Repository automation, AI instructions, environment files, CI workflows,
+examples, tests, proposals, generated schemas, and publishing configuration are
+outside `module/` and therefore excluded from the CUE OCI artifact.
+
 #### Alpha multi-cluster deployment model
 
 - `#TopologyAlpha` now uses the existing `#AppCore` and `#ClusterConfig`

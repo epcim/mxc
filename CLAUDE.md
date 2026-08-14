@@ -21,16 +21,10 @@ All MXC configurations are self-contained inside the workspace directory:
 
 ```text
 mxc (as repo)
-+-- cue.mod/                   # CUE module metadata (github.com/epcim/mxc)
-+-- schema/                    # Central, tool-agnostic validation rules
-│   +-- apps.cue               # Workload intent schema (#AppCore)
-│   +-- cluster.cue            # Infrastructure boundaries (#ClusterConfig)
-│   +-- adapter.cue            # Decoupled output adapter interface (#Adapter)
-│
-+-- adapters/                  # Platform Output Adapters (AD-003)
-│   +-- helm/app-template/     # bjw-s app-template logical projection (see its README.md for upstream chart/version)
-│   +-- kluctl/                # Generic Kluctl render manifests & overlays
-│   +-- kustomize/             # Direct Kustomize manifest injections
++-- module/                    # Publishable github.com/epcim/mxc module
+│   +-- cue.mod/
+│   +-- schema/                # Central, tool-agnostic validation rules
+│   +-- adapters/              # Platform output adapters
 │
 +-- mxc.just                   # Self-contained task-runner module
 ```
@@ -66,7 +60,7 @@ To support highly complex configurations without over-abstracting or losing feat
 ## 🛠️ Schema Implementations
 
 ### 1. Upstream Kustomize Schema Integration (`schema.#Kustomization`)
-Instead of maintaining a custom, brittle mapping for Kustomize fields, the MXC schema includes `#Kustomization` in `mxc/schema/kustomize.cue`. This maps precisely to upstream Kubernetes structures, allowing operators to leverage **JSON Patches** and standard resource inclusion natively inside CUE.
+Instead of maintaining a custom, brittle mapping for Kustomize fields, the MXC schema includes `#Kustomization` in `mxc/module/schema/kustomize.cue`. This maps precisely to upstream Kubernetes structures, allowing operators to leverage **JSON Patches** and standard resource inclusion natively inside CUE.
 
 ```cue
 #Kustomization: {
@@ -96,14 +90,14 @@ k0rdent?: {
 ```
 
 ### 3. Network Configuration Schema (`vars_net.cue` ➔ `vars-net.schema.json`)
-The network topology, CIDRs, VLANs, and VIP (Virtual IP) pools are strictly governed by the `#NetworkConfig` schema defined in [`mxc/schema/vars_net.cue`](schema/vars_net.cue). This layout aligns directly with NetBox IPAM export formats, allowing clean synchronization with automated infrastructure registers.
+The network topology, CIDRs, VLANs, and VIP (Virtual IP) pools are strictly governed by the `#NetworkConfig` schema defined in [`mxc/module/schema/vars_net.cue`](module/schema/vars_net.cue). This layout aligns directly with NetBox IPAM export formats, allowing clean synchronization with automated infrastructure registers.
 *   **Key Fields**: `dns`, `vips`, `vlans`, `lb_pools`, `site`, `location`.
-*   **Editor Autocomplete**: Auto-generated into `mxc/schema/vars-net.schema.json` via our schema-exporter to provide instant YAML diagnostics and validations.
+*   **Editor Autocomplete**: Auto-generated into `mxc/docs/generated-schema/vars-net.schema.json` via our schema-exporter to provide instant YAML diagnostics and validations.
 
 ### 4. Kubernetes Cluster platform Schema (`vars_k8s.cue` ➔ `vars-k8s.schema.json`)
-The Kubernetes distribution type, global container environments, storage classes, and ingress base-annotations are modeled by the `#KubeConfig` schema in [`mxc/schema/vars_k8s.cue`](schema/vars_k8s.cue).
+The Kubernetes distribution type, global container environments, storage classes, and ingress base-annotations are modeled by the `#KubeConfig` schema in [`mxc/module/schema/vars_k8s.cue`](module/schema/vars_k8s.cue).
 *   **Key Fields**: `type` (enum of talos, k3s, microk8s, etc.), `namespaces`, `storage` (default/local/performance class), `ingress` (class, global annotations).
-*   **Editor Autocomplete**: Auto-generated into `mxc/schema/vars-k8s.schema.json` to enable automated linting for platform changes in `vars-k8s.yml`.
+*   **Editor Autocomplete**: Auto-generated into `mxc/docs/generated-schema/vars-k8s.schema.json` to enable automated linting for platform changes in `vars-k8s.yml`.
 
 ### 5. Workload Classification & The "Everything is a Template" Principle
 In MXC, we treat **every deployment as wrapped in an adapter template (scaffolding)**. 
@@ -122,7 +116,7 @@ To categorize how each application's template is processed by our compiler, the 
 `context`'s actual shape is validated per-application, not by `#AppCore` itself — `#AppCore.context` stays a generic `[string]: _` bag on purpose. The real shape contract lives with whichever schema/stack defines that app (an `mxc-library` stack, an app spec living directly in this repo, or a future OCI-packaged stack) and is referenced via `contextSchema` (`#`-prefixed for mxc's own bundled schemas like `"#app-template"`, URL-prefixed for upstream charts not yet vendored) — see AD-020 and the chart-schema vendoring plan in AGENTS-TODO.md.
 
 #### 💡 Dynamic Compiler Detection:
-Instead of maintaining a brittle, hardcoded list of application names in our compiler, `mxc/adapters/kluctl/projection.cue` dynamically detects the generic bjw-s app-template case by reading `contextSchema` directly (normalizing its `string | [...string]` disjunction via a list-comprehension `if`-guard, not `deployment`):
+Instead of maintaining a brittle, hardcoded list of application names in our compiler, `mxc/module/adapters/kluctl/projection.cue` dynamically detects the generic bjw-s app-template case by reading `contextSchema` directly (normalizing its `string | [...string]` disjunction via a list-comprehension `if`-guard, not `deployment`):
 ```cue
 let isAppTemplate = len([for s in contextSchemaList if s == "#app-template" {s}]) > 0
 ```
@@ -181,14 +175,14 @@ When extending MXC or CUE-backed infra domains, follow these default patterns:
 ### 10. Adapter Naming and Alpha Deployment Semantics
 Use adapter directories to express the deployment target, and use filenames or definitions to express the input contract.
 
-1. Prefer target-oriented adapter namespaces such as `mxc/adapters/argocd/`.
+1. Prefer target-oriented adapter namespaces such as `mxc/module/adapters/argocd/`.
 2. Inside those directories, use source-explicit names like `from-cluster.cue`, `from-stack.cue`, or `from-topology.cue` instead of encoding both source and target in the directory name.
-3. Keep orchestration semantics such as `dependsOn`, stack grouping, instance binding, and topology in an alpha deployment schema surface like `mxc/schema/alpha/deploy.cue`, not in `mxc/schema/apps.cue`.
+3. Keep orchestration semantics such as `dependsOn`, stack grouping, instance binding, and topology in an alpha deployment schema surface like `mxc/module/schema/alpha/deploy.cue`, not in `mxc/module/schema/apps.cue`.
 4. Use explicit alpha-stage schema names such as `#DeployAlpha` and `#TopologyAlpha`. Their final shape may later align more closely with Cluster API, K0rdent, or another controller-facing contract.
 5. Use global `mxc::oci-*` commands as stable wrappers that dispatch to artifact-specific publish/package tasks.
 6. **Independence of Core Adapters (`mxc-library` vs `mxc` standalone)**: The core CUE compilation model and base adapters (`kluctl`, `helm/app-template`, and `kustomize`) must be fully self-contained inside the `mxc/` module/directory.
    - Simple, standalone cluster configurations (e.g., `mxc` + `cluster-home-mxc`) must be able to compile, validate, and render successfully **completely without** the `mxc-library` repository.
-   - Base adapters inside `mxc/adapters/` (such as `mxc/adapters/kluctl/`, `mxc/adapters/helm/app-template/`, and `mxc/adapters/kustomize/`) handle the core generic projections (PVC overlays, rollout restart cronjobs, base network policies).
+   - Base adapters inside `mxc/module/adapters/` (such as `mxc/module/adapters/kluctl/`, `mxc/module/adapters/helm/app-template/`, and `mxc/module/adapters/kustomize/`) handle the core generic projections (PVC overlays, rollout restart cronjobs, base network policies).
    - Only advanced production-grade, application-specific, or multi-tenant deployments that depend on the `mxc-library` stack features expect to use or reference `mxc-library/adapters`.
    - **Self-Contained OCI Portability**: To support publishing and fetching `mxc` and `mxc-library` as separate, independent OCI artifacts in the future, **do NOT use filesystem symbolic links or relative parent path traversals (`../`)** for static template files (such as `.yml` / `.yaml` descriptors). Each package must maintain physical copies of its local static assets, while resolving all active compiler schemas and logical transformations cleanly through standard, OCI-compatible CUE module namespace imports (`github.com/epcim/mxc/...`).
 
@@ -265,12 +259,12 @@ n8n: {
 
 ## 📥 Schema Acquisition & Storage Workflows
 
-To expand validation coverage for additional platforms, third-party manifests, or custom CRD controllers, use these commands to acquire and store CUE schemas inside `/mxc/schema/`:
+To expand validation coverage for additional platforms, third-party manifests, or custom CRD controllers, use these commands to acquire and store CUE schemas inside `/mxc/module/schema/`:
 
 ### 1. Standard Specs (SchemaStore)
 Use CUE's `jsonschema` engine to fetch and compile standard formats (e.g. Kustomize):
 ```bash
-cue import -p schema -f -o mxc/schema/kustomize.cue jsonschema: https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json
+cue import -p schema -f -o mxc/module/schema/kustomize.cue jsonschema: https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json
 ```
 
 ### 2. Platform CRDs (NetBird, Traefik, Velero)
@@ -278,10 +272,10 @@ To import schemas derived from Kubernetes CRDs:
 1. Use the root `/schema/Justfile` task (e.g. `just schema-fetch-netbird`) to fetch the CRDs and generate raw JSON schemas under `/schema/`.
 2. Run `cue import` with path-labeling to wrap them under a named CUE definition and strip the duplicate package headers:
    ```bash
-    # Example: Import NetBird Routing Peer CRD schema into mxc/schema/netbird.cue
+    # Example: Import NetBird Routing Peer CRD schema into mxc/module/schema/netbird.cue
     cue import -p schema -f -o - -l '"#NBRoutingPeer"' jsonschema: schema/netbird.io/nbroutingpeer.schema.json \
       | sed 's/"#NBRoutingPeer":/#NBRoutingPeer:/' \
-      | grep -v "^package schema" >> mxc/schema/netbird.cue
+      | grep -v "^package schema" >> mxc/module/schema/netbird.cue
     ```
 
 ### 3. Native JSON Schema Exporting (`just mxc::schema-export`)
@@ -289,10 +283,10 @@ To make standard editors (VSCode, Neovim, etc.) recognize and validate compiled 
 ```bash
 just mxc::schema-export
 ```
-This task automatically evaluates our custom schemas at the package level inside the `mxc/` context directory and dumps them directly as standard Draft-07/2020-12 JSON Schema definitions under `mxc/schema/`:
-*   `vars_net.cue` ➔ [`mxc/schema/vars-net.schema.json`](schema/vars-net.schema.json)
-*   `vars_k8s.cue` ➔ [`mxc/schema/vars-k8s.schema.json`](schema/vars-k8s.schema.json)
-*   `#ClusterConfig` ➔ [`mxc/schema/mxc-cluster.schema.json`](schema/mxc-cluster.schema.json) (useful for full autocompletion on static variables or outputs)
+This task automatically evaluates our custom schemas at the package level inside the `mxc/` context directory and dumps them directly as standard Draft-07/2020-12 JSON Schema definitions under `mxc/module/schema/`:
+*   `vars_net.cue` ➔ [`mxc/docs/generated-schema/vars-net.schema.json`](docs/generated-schema/vars-net.schema.json)
+*   `vars_k8s.cue` ➔ [`mxc/docs/generated-schema/vars-k8s.schema.json`](docs/generated-schema/vars-k8s.schema.json)
+*   `#ClusterConfig` ➔ [`mxc/docs/generated-schema/mxc-cluster.schema.json`](docs/generated-schema/mxc-cluster.schema.json) (useful for full autocompletion on static variables or outputs)
 
 ### ⚠️ Syntactic Constraint
 * **Package Import Placement**: Any generated CUE file containing internal imports (like `import "strings"`) **MUST** declare them strictly at the top of the file directly after the `package schema` header. CUE will fail compilation if imports are declared inline or mid-file.
@@ -496,7 +490,7 @@ hajimari: {
 
 ### 6. Reshaping and Automating the Projection Layer (Future Resiliency)
 To stop the high frequency of manual updates within the `projection.cue` translation layers when new application features are added, we have established a strict plan to reshape and automate this pipeline.
-* **Practice**: Avoid manually hardcoding specific parameters (like `reloader` or `restart`) inside the central `mxc/adapters/kluctl/projection.cue` kernel. Instead, future additions must favor highly generic metadata pass-through blocks, automated schema-driven code generation, and post-rendering validation checks (such as the KRM pipeline model).
+* **Practice**: Avoid manually hardcoding specific parameters (like `reloader` or `restart`) inside the central `mxc/module/adapters/kluctl/projection.cue` kernel. Instead, future additions must favor highly generic metadata pass-through blocks, automated schema-driven code generation, and post-rendering validation checks (such as the KRM pipeline model).
 * **Reference**: Refer to the central [**`TODO.md`**](TODO.md) file at the root of the `mxc/` context for detailed action items, design concepts, and development trackers.
 
 ### 7. Import-Alias Naming Convention for `mxc-library/stacks/*` Packages
@@ -541,7 +535,7 @@ Stack definitions inside the same `mxc-library/stacks/<category>` directory shar
 * **Scope**: only within the same package (same category directory). Across categories/packages, use the normal override-site wiring (`cluster-home-mxc/apps-*.cue`) instead — don't add cross-package imports between stack files just to avoid one literal.
 
 ### 10. The Phased Deprecation & Backward-Compatibility Pattern
-When refactoring schema-level fields or parameters in the core compiler schema (`mxc/schema/`), always maintain 100% backward-compatibility. Since external stack configurations (`mxc-library`) and target environments expect stable variables, schema updates must be executed using a **three-step phased deprecation pattern** rather than breaking immediate cuts:
+When refactoring schema-level fields or parameters in the core compiler schema (`mxc/module/schema/`), always maintain 100% backward-compatibility. Since external stack configurations (`mxc-library`) and target environments expect stable variables, schema updates must be executed using a **three-step phased deprecation pattern** rather than breaking immediate cuts:
 
 1. **Step 1: Double-Representation & Auto-Derivation**: Keep legacy properties on the core interfaces (e.g., `#BaseAppAdapter`), but automatically compute/derive their values under-the-hood from the new source of truth. Mark the legacy properties clearly with a `// TODO: Deprecate...` comment.
 2. **Step 2: Downstream Migration**: Update downstream repositories (`mxc-library` stacks) and user cluster configs to start consuming the new parameters/structures.

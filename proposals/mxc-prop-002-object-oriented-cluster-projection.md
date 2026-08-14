@@ -10,7 +10,7 @@ This document is a **Platform Improvement Proposal (PIP/RFC)** and **Architectur
 * **Status**: Proposed
 * **Date**: 2026-08-07
 * **Author**: Antigravity (Google DeepMind Team) & Developer
-* **Domain**: Platform Output Adapters (`mxc/adapters/`)
+* **Domain**: Platform Output Adapters (`mxc/module/adapters/`)
 * **Focus**: Developer Intent & Compiler Decoupling
 
 ### Context & Problem Statement
@@ -85,10 +85,10 @@ We refactor `#BaseAppAdapter` to require the `cluster` object and automatically 
 ### Phase 1: Core Schema & Projection Updates
 Modify the adapter invocations across all output pipelines to pass the `cluster` object instead of manual fields.
 
-#### 1. `mxc/schema/adapter.cue`
+#### 1. `mxc/module/schema/adapter.cue`
 Modify `#BaseAppAdapter` to require `cluster: #ClusterConfig` and derive the flat parameters.
 
-#### 2. `mxc/adapters/kluctl/projection.cue`
+#### 2. `mxc/module/adapters/kluctl/projection.cue`
 Simplify the app adapter loop:
 ```diff
  				"\(appKey)": (#AppAdapter & {
@@ -102,7 +102,7 @@ Simplify the app adapter loop:
  				}).output
 ```
 
-#### 3. `mxc/adapters/catalog/projection.cue`
+#### 3. `mxc/module/adapters/catalog/projection.cue`
 Simplify catalog's inline mapping:
 ```diff
  	apps: {
@@ -114,7 +114,7 @@ Simplify catalog's inline mapping:
  	}
 ```
 
-#### 4. `mxc/adapters/argocd/projection.cue`
+#### 4. `mxc/module/adapters/argocd/projection.cue`
 Simplify ArgoCD's inline overrides mapping:
 ```diff
  	overrides: {
@@ -132,7 +132,7 @@ Simplify ArgoCD's inline overrides mapping:
 ### Phase 2: Refactoring `app-template` for Direct Consumption
 Rather than requiring individual flat-mapped fields, the `app-template` rendering pipeline will accept `cluster` and unpack it using CUE-native `let` bindings to maintain stable output logic.
 
-#### 1. `mxc/adapters/helm/app-template/projection.cue`
+#### 1. `mxc/module/adapters/helm/app-template/projection.cue`
 ```cue
 #Projection: {
 	appSpec: schema.#AppCore
@@ -149,7 +149,7 @@ Rather than requiring individual flat-mapped fields, the `app-template` renderin
 }
 ```
 
-#### 2. `mxc/adapters/helm/app-template/fixtures.cue`
+#### 2. `mxc/module/adapters/helm/app-template/fixtures.cue`
 Update `#KluctlExtension` to accept `cluster` and forward it down to `#Projection`:
 ```cue
 #KluctlExtension: {
@@ -175,7 +175,7 @@ Update `#KluctlExtension` to accept `cluster` and forward it down to `#Projectio
 
 ---
 
-### Phase 3: Simplifying Polymorphic Unification (`mxc/adapters/kluctl/fixtures.cue`)
+### Phase 3: Simplifying Polymorphic Unification (`mxc/module/adapters/kluctl/fixtures.cue`)
 Because `#AppAdapter` (which unifies with `#BaseAppAdapter`) and `#KluctlExtension` both declare `spec` and `cluster`, we no longer need complex, custom `let` annotations extraction blocks inside the polymorphic branch. CUE's mathematical unification will automatically and elegantly merge them:
 
 ```diff
