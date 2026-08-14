@@ -47,7 +47,7 @@ For production-grade, multi-cluster organizations, the optional `mxc-library` re
 To prevent parameter drift and catch syntax or configuration errors before any manifests are generated or deployed, MXC supports **Upstream Chart Schema Vendoring**:
 
 * **Catalog-Driven Vendoring**: External Helm chart schemas are registered declaratively in our central `schema/catalog.cue` definition.
-* **Automatic Compilation & Import**: Running `cue cmd vendor-schema` downloads and compiles these official `values.schema.json` schemas (or `values.yaml` fallback) into native CUE definitions (`values_schema.cue`) nested directly inside the respective stack directories.
+* **Automatic Compilation & Import**: The companion `mxc-library` owns the `cue cmd vendor-schema` workflow that downloads and compiles official `values.schema.json` schemas (or `values.yaml` fallback) into native CUE definitions (`values_schema.cue`) beside the owning stacks.
 * **Compile-Time Typo Protection**: Unifying the imported `#ValuesSchema` definition with the application's `values` or `context` field instantly blocks the build if an invalid parameter is introduced.
 
 #### 💡 Example: Typo Protection in Action
@@ -155,3 +155,6 @@ To support publishing and pulling both `mxc` and `mxc-library` as separate, inde
 * **No Symlinks**: Directory symbolic links are not used to avoid broken links during extracted OCI runs.
 * **No Path Traversal**: Code and manifests never use relative parent traversal paths (`../some/path`).
 * **Clean Module Boundaries**: All active logical schemas are shared and resolved cleanly via standard CUE import boundaries (`github.com/epcim/mxc/...`).
+
+See [`docs/oci-publishing.md`](docs/oci-publishing.md) for the validated GHCR
+dry-run, publication, and clean-consumer workflow.

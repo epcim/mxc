@@ -2,6 +2,9 @@ module: "github.com/epcim/mxc"
 language: {
 	version: "v0.9.0"
 }
+source: {
+	kind: "git"
+}
 deps: {
 	"cue.dev/x/crd/cert-manager.io@v0": {
 		v:       "v0.3.0"

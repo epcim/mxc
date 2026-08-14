@@ -3,10 +3,9 @@ package mxc
 
 import (
 	"github.com/epcim/mxc/schema:schema"
-	adp_argocd       "github.com/epcim/mxc/adapters/argocd:argocd"
-	adp_argoworkflow "github.com/epcim/mxc/adapters/argoworkflow:argoworkflow"
-	adp_kluctl       "github.com/epcim/mxc/adapters/kluctl:kluctl"
-	adp_catalog      "github.com/epcim/mxc/adapters/catalog:catalog"
+	adp_argocd "github.com/epcim/mxc/adapters/argocd:argocd"
+	adp_kluctl "github.com/epcim/mxc/adapters/kluctl:kluctl"
+	adp_catalog "github.com/epcim/mxc/adapters/catalog:catalog"
 )
 
 cluster: schema.#ClusterConfig & {
@@ -44,9 +43,6 @@ adapters: {
 		cluster: cluster
 	}
 	argocd: adp_argocd.#Projection & {
-		cluster: cluster
-	}
-	argoworkflow: adp_argoworkflow.#Projection & {
 		cluster: cluster
 	}
 	catalog: adp_catalog.#Projection & {

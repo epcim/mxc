@@ -1,6 +1,7 @@
 # Ignore local build and rendering artifacts
 .build/
 .build*
+.env
 
 # Ignore synced CUE external packages/libraries
 **/cue.mod/pkg/github.com/epcim/mxc-library/

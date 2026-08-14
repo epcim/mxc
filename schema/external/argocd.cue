@@ -2,9 +2,9 @@
 package external
 
 #ObjectMeta: {
-	name:        string
-	namespace:   string
-	labels?:     [string]: string
+	name:      string
+	namespace: string
+	labels?: [string]:      string
 	annotations?: [string]: string
 }
 
@@ -21,7 +21,7 @@ package external
 
 #ApplicationSourcePlugin: {
 	name: string
-	env?:  [...#ApplicationSourcePluginEnv]
+	env?: [...#ApplicationSourcePluginEnv]
 }
 
 #ApplicationSource: {
@@ -49,38 +49,4 @@ package external
 	kind:       "Application"
 	metadata:   #ObjectMeta
 	spec:       #ApplicationSpec
-})
-
-#ApplicationSetGeneratorListElement: {
-	name:      string
-	stack:     string
-	namespace: string
-	cuePath:   string
-	dependsOn?: string
-}
-
-#ApplicationSetGenerator: {
-	list?: {
-		elements: [...#ApplicationSetGeneratorListElement]
-	}
-}
-
-#ApplicationSetTemplate: {
-	metadata: {
-		name: string
-	}
-	spec: #ApplicationSpec
-}
-
-#ApplicationSet: close({
-	apiVersion: "argoproj.io/v1alpha1"
-	kind:       "ApplicationSet"
-	metadata:   #ObjectMeta
-	spec: {
-		generators: [...#ApplicationSetGenerator]
-		template:   #ApplicationSetTemplate
-		syncPolicy?: {
-			applicationsSync?: string
-		}
-	}
 })

@@ -175,7 +175,7 @@ When extending MXC or CUE-backed infra domains, follow these default patterns:
 ### 10. Adapter Naming and Alpha Deployment Semantics
 Use adapter directories to express the deployment target, and use filenames or definitions to express the input contract.
 
-1. Prefer target-oriented adapter namespaces such as `mxc/adapters/argocd/` and `mxc/adapters/argoworkflow/`.
+1. Prefer target-oriented adapter namespaces such as `mxc/adapters/argocd/`.
 2. Inside those directories, use source-explicit names like `from-cluster.cue`, `from-stack.cue`, or `from-topology.cue` instead of encoding both source and target in the directory name.
 3. Keep orchestration semantics such as `dependsOn`, stack grouping, instance binding, and topology in an alpha deployment schema surface like `mxc/schema/alpha/deploy.cue`, not in `mxc/schema/apps.cue`.
 4. Use explicit alpha-stage schema names such as `#DeployAlpha` and `#TopologyAlpha`. Their final shape may later align more closely with Cluster API, K0rdent, or another controller-facing contract.
@@ -607,5 +607,4 @@ Run through this before finishing any edit that touches an `mxc-library/stacks/*
 1. **Verify Compilation:** Ensure `just mxc::validate` and `just mxc::export` run in milliseconds with zero warnings and exit with **code 0**.
 2. **Review Output:** Run `just mxc::export` and visually inspect that all default container ports are resolved, FQDNs are properly computed, and storage classes are correctly assigned.
 3. **Never Manual Edit vars.yml:** If you need to change a port, volume, or IP, update it in the **CUE input source files** (`cluster-home-mxc/vars-env.cue` or schemas), then run `just mxc::export` to regenerate the output. Do not edit `cluster-home-mxc/vars.yml` directly.
-
 

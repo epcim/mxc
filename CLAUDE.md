@@ -181,7 +181,7 @@ When extending MXC or CUE-backed infra domains, follow these default patterns:
 ### 10. Adapter Naming and Alpha Deployment Semantics
 Use adapter directories to express the deployment target, and use filenames or definitions to express the input contract.
 
-1. Prefer target-oriented adapter namespaces such as `mxc/adapters/argocd/` and `mxc/adapters/argoworkflow/`.
+1. Prefer target-oriented adapter namespaces such as `mxc/adapters/argocd/`.
 2. Inside those directories, use source-explicit names like `from-cluster.cue`, `from-stack.cue`, or `from-topology.cue` instead of encoding both source and target in the directory name.
 3. Keep orchestration semantics such as `dependsOn`, stack grouping, instance binding, and topology in an alpha deployment schema surface like `mxc/schema/alpha/deploy.cue`, not in `mxc/schema/apps.cue`.
 4. Use explicit alpha-stage schema names such as `#DeployAlpha` and `#TopologyAlpha`. Their final shape may later align more closely with Cluster API, K0rdent, or another controller-facing contract.

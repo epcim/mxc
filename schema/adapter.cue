@@ -22,6 +22,11 @@ package schema
 #BaseAppAdapter: {
 	spec:    #AppCore
 	cluster: #ClusterConfig
+	// Simple projections inherit appName. Deployment-aware adapters set name
+	// from the DeployAlpha key; instanceName remains an override point.
+	name:         *spec.appName | string
+	instanceName: *name | string
+	appInstance:  *instanceName | string
 
 	// TODO: Deprecate individual flat mapping of cluster-level globals below,
 	// and instead have adapters directly consume the `cluster` object itself.
@@ -37,7 +42,6 @@ package schema
 	output: {
 		appName:    spec.appName
 		deployment: spec.deployment
-
 		// NOTE: Each adapter define what metadata is relevant for its own
 		// Direct metadata delivery
 		// if spec.tags != _|_ { tags: spec.tags }

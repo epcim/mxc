@@ -9,24 +9,51 @@ package alpha
 //
 // Naming follows an explicit alpha-stage style, similar to Kubernetes API
 // evolution, so callers can treat these as provisional contracts.
+// schema.#TopologyAlpha composes these bindings with #AppCore and
+// #ClusterConfig; keeping that composition in package schema avoids an import
+// cycle from this alpha package back to its parent.
 
 #RefAlpha: close({
-	kind: "stack" | "instance" | "target" | "external"
-	name: string
+	kind:     "cluster" | "instance" | "external"
+	name:     string & !=""
+	cluster?: string & !=""
 })
 
-#StackInstanceAlpha: close({
-	enabled?: *true | bool
-	stack:    string
-	dependsOn?: [...#RefAlpha]
-	context?: {
-		[string]: _
+// #InstanceIdentityAlpha provides one naming chain for simple and advanced
+// deployments. Callers normally set only name; specialized instance names may
+// override the default without changing the base object name.
+#InstanceIdentityAlpha: {
+	name:         string & !=""
+	instanceName: *name | (string & !="")
+	...
+}
+
+#ClusterInstanceAlpha: I=#InstanceIdentityAlpha & {
+	clusterInstance: *I.instanceName | (string & !="")
+	cluster:         _
+}
+
+// #PlacementAlpha selects the named clusters where one application instance is
+// deployed. The non-empty list is the simple form; overrides remain optional
+// and are interpreted by the deployment adapter.
+#PlacementAlpha: {
+	clusters: [string, ...string]
+	overrides?: [string]: {
+		enabled?: *true | bool
+		context?: {
+			[string]: _
+		}
 	}
-})
+	...
+}
 
-#TargetAlpha: {
-	enabled?: *true | bool
-	instances?: [string]: #StackInstanceAlpha
+// #AppInstanceAlpha binds one reusable application definition to one or more
+// named clusters. TopologyAlpha constrains app to #AppCore.
+#AppInstanceAlpha: I=#InstanceIdentityAlpha & {
+	appInstance: *I.instanceName | (string & !="")
+	enabled?:    *true | bool
+	app:         _
+	placement:   #PlacementAlpha
 	dependsOn?: [...#RefAlpha]
 	context?: {
 		[string]: _
@@ -37,13 +64,8 @@ package alpha
 #DeployAlpha: {
 	apiVersion?: *"deploy.mxc.cue/v1alpha1" | string
 	kind?:       *"Deploy" | string
-	targets?: [string]: #TargetAlpha
-	...
-}
-
-#TopologyAlpha: {
-	apiVersion?: *"deploy.mxc.cue/v1alpha1" | string
-	kind?:       *"Topology" | string
-	clusters?: [string]: #DeployAlpha
+	instances: [instanceKey=string]: #AppInstanceAlpha & {
+		name: instanceKey
+	}
 	...
 }

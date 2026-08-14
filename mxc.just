@@ -4,6 +4,9 @@
 
 root := clean(source_dir() + "/..")
 TARGET_DEFAULT := `echo "${TARGET:-cluster-home-mxc}" | sed -E 's/(-mxc)?$/-mxc/'`
+GHCR_USER := env_var_or_default("GHCR_USER", "epcim")
+OCI_VERSION := env_var_or_default("OCI_VERSION", "v0.1.0")
+_registry_config := "file:" + root + "/mxc/cue.mod/registry.cue"
 
 # Run CUE schema validation (cue vet) against MXC rules
 [group('mxc')]
@@ -215,6 +218,24 @@ _sync dest:
 
 # Run CUE schema test validations and CI checks for Forgejo / GitHub Actions
 [group('mxc')]
+test-alpha:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cue vet {{ root }}/mxc/schema/...
+    cue vet {{ root }}/mxc/test/topology_alpha.cue
+    cue export {{ root }}/mxc/test/topology_alpha.cue -e alphaMultiClusterFixture --out json | jq -e '.clusters.gc01.cluster.clusterName == "gc01" and .deploy.instances["kafka-gc"].appInstance == "kafka-gc" and (.deploy.instances["kafka-ce"].placement.clusters | length) == 2' >/dev/null
+    cue export {{ root }}/mxc/test/topology_alpha.cue -e adapterIdentityFixture --out json | jq -e '.simple.appInstance == "kafka" and .deployed.appInstance == "kafka-gc" and .customized.appInstance == "kafka-shard-0"' >/dev/null
+    if cue eval {{ root }}/mxc/test/topology_alpha.cue -e 'alphaMultiClusterFixture & {deploy: instances: invalid: {app: _kafkaSpec, placement: clusters: []}}' >/dev/null 2>&1; then
+        echo "Empty placement unexpectedly accepted" >&2
+        exit 1
+    fi
+    if cue eval {{ root }}/mxc/test/topology_alpha.cue -e 'alphaMultiClusterFixture & {deploy: instances: "kafka-gc": instanceName: ""}' >/dev/null 2>&1; then
+        echo "Empty instance name unexpectedly accepted" >&2
+        exit 1
+    fi
+    cue eval {{ root }}/mxc/test/topology_alpha.cue -e 'alphaMultiClusterFixture & {deploy: instances: extra: {app: _kafkaSpec, placement: clusters: ["gc01"]}}' >/dev/null
+
+[group('mxc')]
 test target *args="":
     #!/usr/bin/env fish
     set_color blue
@@ -236,6 +257,7 @@ test target *args="":
     	set_color normal
     	exit 1
     end
+    just test-alpha
 
     # Step 2: Validate Curated Docker Compose Schema
     echo ""
@@ -289,34 +311,57 @@ schema-export:
 export-argocd expr="adapters.argocd.output" *args="":
     just _export {{ TARGET_DEFAULT }} {{ expr }} {{ args }}
 
-[group('mxc')]
-export-workflows expr="adapters.argoworkflow.output" *args="":
-    just _export {{ TARGET_DEFAULT }} {{ expr }} {{ args }}
-
 # Global OCI wrappers. They dispatch artifact-specific tasks so the public
 # command surface can stay stable while MXC grows multiple publishable units.
+[group('mxc-oci')]
+ghcr-status:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "GHCR_USER={{ GHCR_USER }}"
+    if [[ -n "${GHCR_PAT:-}" ]]; then
+        echo "GHCR_PAT=set"
+    else
+        echo "GHCR_PAT=unset"
+    fi
+
+[group('mxc-oci')]
+ghcr-login:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [[ -z "${GHCR_PAT:-}" ]]; then
+        echo "GHCR_PAT is required; refusing GHCR login" >&2
+        exit 1
+    fi
+    printf '%s' "$GHCR_PAT" | docker login ghcr.io -u "{{ GHCR_USER }}" --password-stdin
+
 [group('mxc')]
-oci-package artifact="library" version="" *args="":
+oci-package artifact="core" version=OCI_VERSION *args="":
     just _oci-package {{ artifact }} {{ version }} {{ args }}
 
 [group('mxc')]
-oci-publish artifact="library" version="" *args="":
+oci-publish artifact="core" version=OCI_VERSION *args="": ghcr-login
     just _oci-publish {{ artifact }} {{ version }} {{ args }}
 
 _oci-package artifact version="" *args="":
     #!/usr/bin/env bash
+    set -euo pipefail
     case "{{ artifact }}" in \
+      core) \
+        cd "{{ root }}/mxc" && cue mod tidy && cue vet ./schema/... && cue vet ./adapters/... && just test-alpha && CUE_REGISTRY='{{ _registry_config }}' cue mod publish "{{ version }}" --dry-run --json {{ args }} ;; \
       library) \
-        cd "{{ root }}/mxc-library" && cue mod tidy && cue fmt ./... && cue vet ./... ;; \
+        cd "{{ root }}/mxc-library" && cue mod tidy && cue vet ./... ;; \
       *) \
         echo "Unsupported OCI artifact: {{ artifact }}" >&2; exit 1 ;; \
     esac
 
 _oci-publish artifact version="" *args="":
     #!/usr/bin/env bash
+    set -euo pipefail
     case "{{ artifact }}" in \
+      core) \
+        cd "{{ root }}/mxc" && cue mod tidy && cue vet ./schema/... && cue vet ./adapters/... && just test-alpha && CUE_REGISTRY='{{ _registry_config }}' cue mod publish "{{ version }}" {{ args }} ;; \
       library) \
-        cd "{{ root }}/mxc-library" && cue mod tidy && cue fmt ./... && cue vet ./... && cue mod publish {{ version }} {{ args }} ;; \
+        cd "{{ root }}/mxc-library" && cue mod tidy && cue vet ./... && CUE_REGISTRY='{{ _registry_config }}' cue mod publish "{{ version }}" {{ args }} ;; \
       *) \
         echo "Unsupported OCI artifact: {{ artifact }}" >&2; exit 1 ;; \
     esac
