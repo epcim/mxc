@@ -11,3 +11,8 @@
 
 # Ignore compiled parameters
 **/vars.yml
+
+.envrc.local
+external/
+mxc-library/
+walkthrough.md
