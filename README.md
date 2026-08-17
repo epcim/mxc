@@ -17,10 +17,13 @@ MXC is built around a foundational principle: **Keep the core primitives minimal
 
 1. **Minimal & Universal Primitives (`#App`, `#Cluster`, `#Location`, `#Stack`)**:
    - The core `github.com/epcim/mxc` schema defines the absolute minimal structure required to describe workloads, compute boundaries, and hierarchical environments without vendor or environment lock-in.
-2. **Pluggable & Extensible**:
-   - If your enterprise or cluster topology matches `epcim/mxc`, you can consume `#App` and `#Cluster` directly.
-   - If your deployment platform requires custom metadata, specialized network topology (e.g., F5 XC sites, Cloud VPCs), or custom orchestration flags, you maintain your own domain schemas by **unifying or wrapping** `epcim/mxc` primitives rather than forking the tooling.
-3. **Shared Tooling & Projection Pipeline**:
+   - Container intent is captured cleanly via the pre-composed `#AppMxc` contract, which draws composable facets from `schema/mxc_k8s` (`#ImageSpec`, `#PortsSpec`, `#ExposeSpec`, `#StorageSpec`, `#SecretsSpec`).
+2. **Composable Platform Facets (`#WithKube`, `#WithNetwork`, `#WithApps`, `#WithPolicies`)**:
+   - Physical infrastructure concerns (like NetBox IPAM, VIP pools, and VLANs) are isolated in `#WithNetwork` at the cluster boundary (`cluster-home-mxc`), keeping `#AppMxc` thin, portable, and cloud-agnostic.
+3. **Pluggable & Extensible**:
+   - If your enterprise or cluster topology matches `epcim/mxc`, you can consume `#AppMxc` and composed `#Cluster` directly.
+   - If your deployment platform requires custom metadata, specialized network topology, or custom orchestration flags, you maintain your own domain schemas by **unifying or wrapping** `epcim/mxc` primitives without forking the tooling.
+4. **Shared Tooling & Projection Pipeline**:
    - The compilers, OCI distribution mechanisms, schema validators, and output adapters (Kluctl, Kustomize, ArgoCD, Helm) remain 100% shared, reusable, and uniform across organizations.
 
 ---
@@ -31,7 +34,10 @@ MXC is built around a foundational principle: **Keep the core primitives minimal
 mxc/
 ├── module/             # Publishable github.com/epcim/mxc CUE module
 │   ├── cue.mod/
-│   ├── schema/         # Compiler rules (#AppCore, #ClusterConfig)
+│   ├── schema/         # Compiler rules (#App, #AppMxc, #Cluster, #WithKube, #WithNetwork)
+│   │   ├── mxc_k8s/    # Container and K8s facet package (workload.cue, cluster.cue)
+│   │   ├── alpha/      # Alpha deployment schemas (#TopologyAlpha, #DeployAlpha)
+│   │   └── external/   # Upstream & third-party schemas (Kustomize, NetBird)
 │   └── adapters/       # Kluctl, Helm, Kustomize, ArgoCD and catalog adapters
 ├── docs/               # Platform documentation & slideshows
 ├── examples/           # Consumer examples, not included in OCI

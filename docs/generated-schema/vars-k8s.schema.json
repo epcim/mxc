@@ -1,11 +1,9 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "type": "object",
-    "description": "Kubernetes Cluster Configuration\n\nKubernetes platform configuration for cluster",
-    "additionalProperties": true,
-    "properties": {
-        "kube": {
+    "$defs": {
+        "KubeSpec": {
             "type": "object",
+            "description": "#KubeSpec defines Kubernetes platform and cluster runtime configurations.",
             "additionalProperties": true,
             "properties": {
                 "env": {
@@ -13,8 +11,7 @@
                     "additionalProperties": true,
                     "properties": {
                         "TZ": {
-                            "type": "string",
-                            "description": "Timezone"
+                            "type": "string"
                         }
                     }
                 },
@@ -29,8 +26,7 @@
                             }
                         },
                         "class": {
-                            "type": "string",
-                            "description": "Default ingress class"
+                            "type": "string"
                         }
                     },
                     "required": [
@@ -39,26 +35,8 @@
                 },
                 "namespaces": {
                     "type": "array",
-                    "description": "Namespaces to create",
                     "items": {
                         "type": "string"
-                    }
-                },
-                "networking": {
-                    "type": "object",
-                    "additionalProperties": true,
-                    "properties": {
-                        "pod_cidr": {
-                            "type": "string",
-                            "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+/[0-9]+$"
-                        },
-                        "policy_namespace": {
-                            "type": "string"
-                        },
-                        "service_cidr": {
-                            "type": "string",
-                            "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+/[0-9]+$"
-                        }
                     }
                 },
                 "storage": {
@@ -66,20 +44,16 @@
                     "additionalProperties": true,
                     "properties": {
                         "backup": {
-                            "type": "string",
-                            "description": "Backup storage class"
+                            "type": "string"
                         },
                         "default": {
-                            "type": "string",
-                            "description": "Default storage class"
+                            "type": "string"
                         },
                         "local": {
-                            "type": "string",
-                            "description": "Local storage class"
+                            "type": "string"
                         },
                         "performance": {
-                            "type": "string",
-                            "description": "Performance storage class"
+                            "type": "string"
                         }
                     },
                     "required": [
@@ -88,23 +62,51 @@
                 },
                 "type": {
                     "description": "Kubernetes distribution type",
-                    "enum": [
-                        "microk8s",
-                        "k3s",
-                        "talos",
-                        "eks",
-                        "gke",
-                        "aks",
-                        "kind",
-                        "kwok"
+                    "anyOf": [
+                        {
+                            "const": "microk8s"
+                        },
+                        {
+                            "const": "k3s"
+                        },
+                        {
+                            "const": "talos"
+                        },
+                        {
+                            "const": "eks"
+                        },
+                        {
+                            "const": "gke"
+                        },
+                        {
+                            "const": "aks"
+                        },
+                        {
+                            "const": "kind"
+                        },
+                        {
+                            "const": "kwok"
+                        },
+                        {
+                            "type": "string"
+                        }
                     ]
                 }
             },
             "required": [
-                "ingress",
-                "storage",
                 "type"
             ]
         }
-    }
+    },
+    "type": "object",
+    "description": "#WithKube attaches Kubernetes platform properties.",
+    "additionalProperties": true,
+    "properties": {
+        "kube": {
+            "$ref": "#/$defs/KubeSpec"
+        }
+    },
+    "required": [
+        "kube"
+    ]
 }

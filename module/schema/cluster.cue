@@ -4,12 +4,13 @@ package schema
 import (
 	alpha "github.com/epcim/mxc/schema/alpha:alpha"
 	"github.com/epcim/mxc/schema/external:external"
+	"github.com/epcim/mxc/schema/mxc_k8s:mxc_k8s"
 )
 
-// #Cluster represents a concrete compute deployment target.
+// #Cluster is the ultra-minimal compute deployment target primitive.
 #Cluster: {
 	clusterName: string
-	environment: "production" | "staging" | "development"
+	environment: "production" | "staging" | "development" | string
 
 	env?: [string]: string
 	values?: {
@@ -21,25 +22,19 @@ import (
 	if context != _|_ {
 		values: context
 	}
+	...
+}
 
-	kube: {
-		type: "microk8s" | "k3s" | "talos" | "eks" | "gke" | "aks" | "kind" | "kwok"
-		storage: {
-			default:      string
-			performance?: string
-			backup?:      string
-			local?:       string
-		}
-		ingress: {
-			class: string
-			annotations?: [string]: string
-		}
-		namespaces?: [...string]
-		env?: {
-			TZ?: string
-		}
-	}
+// Composable Platform & Infrastructure Facets
 
+// #WithKube attaches Kubernetes platform properties.
+#WithKube: {
+	kube: mxc_k8s.#KubeSpec
+	...
+}
+
+// #WithNetwork attaches NetBox-compatible network and IPAM topology.
+#WithNetwork: {
 	network: {
 		site?:     string
 		location?: string
@@ -47,27 +42,56 @@ import (
 		dns?: {
 			servers?: [...string]
 			search?: [...string]
+			...
 		}
 		lb_pools?: [string]: #lb_pool
 		vips: [string]:      #vip
 		domain: string
+		...
 	}
-
-	// Grouped application specifications by category/group (e.g., example, games, infra, etc.)
-	apps: [Category=string]: [AppKey=string]: #App
-
-	// Validated Kubernetes NetworkPolicies
-	networkPolicies?: [string]: external.#K8sNetworkPolicy
+	...
 }
 
-// Deprecated alias for backward compatibility
-#ClusterConfig: #Cluster
+#lb_pool: {
+	vlan?: string
+	// IP range (e.g., 172.31.2.32-172.31.2.63)
+	range!: string
+	interfaces?: [...string]
+	...
+}
 
-// #TopologyAlpha composes concrete named clusters and application deployment
-// instances. Reusable profiles remain ordinary CUE definitions and imports;
-// topology references their values directly instead of creating another
-// profile registry. Cross-reference and rollout policy belongs to deployment
-// adapters/controllers so this composition surface remains open and reusable.
+#vip: {
+	address!: string
+	pool?:    string
+	// DNS hostname
+	dns?: string
+	...
+}
+
+#vlan: {
+	// VLAN ID (0 = untagged/native)
+	id!:      int & >=0 & <=4094
+	subnet!:  =~"^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+/[0-9]+$"
+	gateway?: string
+	...
+}
+
+// #WithApps attaches application workload inventory grouped by category.
+#WithApps: {
+	apps: [Category=string]: [AppKey=string]: #App
+	...
+}
+
+// #WithPolicies attaches Kubernetes NetworkPolicy definitions.
+#WithPolicies: {
+	networkPolicies?: [string]: external.#K8sNetworkPolicy
+	...
+}
+
+// #ClusterConfig is the unified default cluster contract for backward compatibility.
+#ClusterConfig: #Cluster & #WithKube & #WithNetwork & #WithApps & #WithPolicies
+
+// #TopologyAlpha composes concrete named clusters and application deployment instances.
 #TopologyAlpha: {
 	apiVersion?: *"deploy.mxc.cue/v1alpha1" | string
 	kind?:       *"Topology" | string
@@ -79,7 +103,7 @@ import (
 	}
 	deploy: alpha.#DeployAlpha & {
 		instances: [string]: {
-			app: #AppCore
+			app: #AppMxc
 		}
 	}
 	...

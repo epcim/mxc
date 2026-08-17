@@ -83,13 +83,13 @@ k0rdent?: {
 }
 ```
 
-### 3. Network Configuration Schema (`vars_net.cue` ➔ `vars-net.schema.json`)
-The network topology, CIDRs, VLANs, and VIP (Virtual IP) pools are strictly governed by the `#NetworkConfig` schema defined in [`mxc/module/schema/vars_net.cue`](module/schema/vars_net.cue). This layout aligns directly with NetBox IPAM export formats, allowing clean synchronization with automated infrastructure registers.
+### 3. Network Configuration Schema (`#WithNetwork` ➔ `vars-net.schema.json`)
+The network topology, CIDRs, VLANs, and VIP (Virtual IP) pools are strictly governed by the `#WithNetwork` facet schema defined in [`mxc/module/schema/cluster.cue`](module/schema/cluster.cue). This layout aligns directly with NetBox IPAM export formats, allowing clean synchronization with automated infrastructure registers.
 *   **Key Fields**: `dns`, `vips`, `vlans`, `lb_pools`, `site`, `location`.
 *   **Editor Autocomplete**: Auto-generated into `mxc/docs/generated-schema/vars-net.schema.json` via our schema-exporter to provide instant YAML diagnostics and validations.
 
-### 4. Kubernetes Cluster platform Schema (`vars_k8s.cue` ➔ `vars-k8s.schema.json`)
-The Kubernetes distribution type, global container environments, storage classes, and ingress base-annotations are modeled by the `#KubeConfig` schema in [`mxc/module/schema/vars_k8s.cue`](module/schema/vars_k8s.cue).
+### 4. Kubernetes Cluster platform Schema (`#WithKube` ➔ `vars-k8s.schema.json`)
+The Kubernetes distribution type, global container environments, storage classes, and ingress base-annotations are modeled by the `#WithKube` / `#KubeSpec` schema in [`mxc/module/schema/cluster.cue`](module/schema/cluster.cue) and [`mxc/module/schema/mxc_k8s/cluster.cue`](module/schema/mxc_k8s/cluster.cue).
 *   **Key Fields**: `type` (enum of talos, k3s, microk8s, etc.), `namespaces`, `storage` (default/local/performance class), `ingress` (class, global annotations).
 *   **Editor Autocomplete**: Auto-generated into `mxc/docs/generated-schema/vars-k8s.schema.json` to enable automated linting for platform changes in `vars-k8s.yml`.
 
@@ -278,8 +278,8 @@ To make standard editors (VSCode, Neovim, etc.) recognize and validate compiled 
 just mxc::schema-export
 ```
 This task automatically evaluates our custom schemas at the package level inside the `mxc/` context directory and dumps them directly as standard Draft-07/2020-12 JSON Schema definitions under `mxc/module/schema/`:
-*   `vars_net.cue` ➔ [`mxc/docs/generated-schema/vars-net.schema.json`](docs/generated-schema/vars-net.schema.json)
-*   `vars_k8s.cue` ➔ [`mxc/docs/generated-schema/vars-k8s.schema.json`](docs/generated-schema/vars-k8s.schema.json)
+*   `#WithNetwork` ➔ [`mxc/docs/generated-schema/vars-net.schema.json`](docs/generated-schema/vars-net.schema.json)
+*   `#WithKube` ➔ [`mxc/docs/generated-schema/vars-k8s.schema.json`](docs/generated-schema/vars-k8s.schema.json)
 *   `#ClusterConfig` ➔ [`mxc/docs/generated-schema/mxc-cluster.schema.json`](docs/generated-schema/mxc-cluster.schema.json) (useful for full autocompletion on static variables or outputs)
 
 ### ⚠️ Syntactic Constraint

@@ -20,16 +20,18 @@ All MXC configurations are self-contained inside the workspace directory:
 
 ```text
 mxc (as repo)
-+-- cue.mod/                   # CUE module metadata (github.com/epcim/mxc)
-+-- schema/                    # Central, tool-agnostic validation rules
-│   +-- apps.cue               # Workload intent schema (#AppCore)
-│   +-- cluster.cue            # Infrastructure boundaries (#ClusterConfig)
-│   +-- adapter.cue            # Decoupled output adapter interface (#Adapter)
-│
-+-- adapters/                  # Platform Output Adapters (AD-003)
-│   +-- app_template/          # bjw-s app-template logical projection
-│   +-- kluctl/                # Generic Kluctl render manifests & overlays
-│   +-- kustomize-only/        # Direct Kustomize manifest injections
++-- module/                    # Publishable github.com/epcim/mxc module
+│   +-- cue.mod/               # CUE module metadata (github.com/epcim/mxc)
+│   +-- schema/                # Central, tool-agnostic validation rules
+│   │   +-- apps.cue           # Workload intent schema (#App, #AppMxc)
+│   │   +-- cluster.cue        # Compute boundaries & facets (#Cluster, #WithKube, #WithNetwork)
+│   │   +-- mxc_k8s/           # Container & K8s facet package (workload.cue, cluster.cue)
+│   │   +-- adapter.cue        # Decoupled output adapter interface (#Adapter)
+│   │
+│   +-- adapters/              # Platform Output Adapters (AD-003)
+│       +-- app_template/      # bjw-s app-template logical projection
+│       +-- kluctl/            # Generic Kluctl render manifests & overlays
+│       +-- kustomize/         # Direct Kustomize manifest injections
 │
 +-- mxc.just                   # Self-contained task-runner module
 ```
@@ -56,8 +58,8 @@ just mxc::schema-export
 ## 🎨 Design Principles for Gemini Authors
 
 ### 1. Separate Workload Intent from Cluster Reality
-* **Workload Spec (`apps.cue`):** Focuses strictly on abstract developer requests (`expose: target: "ingress"`, storage sizes). Never leak internal container ports or specific domain suffixes here.
-* **Infrastructure Spec (`cluster.cue`):** Maps logical intents to physical cluster capabilities (injecting `storageClass: "longhorn"`, base domains `example.com`, and VIP configurations).
+* **Workload Spec (`apps.cue` / `#AppMxc`):** Focuses strictly on abstract developer requests (`expose: http: target: "ingress"`, storage sizes). Never leak internal container ports, VIPs, or physical subnets/domain suffixes here.
+* **Infrastructure Spec (`cluster.cue` / `#WithNetwork` & `#WithKube`):** Maps logical intents to physical cluster capabilities (injecting `storageClass: "longhorn"`, base domains `example.com`, MetalLB IP pools, and VIP allocations). `#WithNetwork` keeps physical IPAM configurations isolated at the cluster boundary.
 
 ### 2. Standardizing API Endpoints (The API vs Port Isolation Rule)
 Never hardcode protocol-specific transport ports (such as SSH running on port 2222) inside standard REST API endpoints (like `RENOVATE_ENDPOINT`).

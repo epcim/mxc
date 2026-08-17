@@ -310,8 +310,8 @@ test target *args="":
 schema-export:
     #!/usr/bin/env bash
     echo "▶ Exporting custom CUE schemas to JSON Schema..."
-    (cd {{ _module_dir }} && cue export ./schema/vars_net.cue --out jsonschema) > {{ root }}/mxc/docs/generated-schema/vars-net.schema.json
-    (cd {{ _module_dir }} && cue export ./schema/vars_k8s.cue --out jsonschema) > {{ root }}/mxc/docs/generated-schema/vars-k8s.schema.json
+    (cd {{ _module_dir }} && cue export ./schema -e '#WithNetwork' --out jsonschema) > {{ root }}/mxc/docs/generated-schema/vars-net.schema.json
+    (cd {{ _module_dir }} && cue export ./schema -e '#WithKube' --out jsonschema) > {{ root }}/mxc/docs/generated-schema/vars-k8s.schema.json
     (cd {{ _module_dir }} && cue export ./schema --out jsonschema -e '#ClusterConfig') > {{ root }}/mxc/docs/generated-schema/mxc-cluster.schema.json
     echo "✓ Exported JSON schemas into mxc/docs/generated-schema/."
 

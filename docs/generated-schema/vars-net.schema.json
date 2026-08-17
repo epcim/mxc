@@ -74,7 +74,7 @@
         }
     },
     "type": "object",
-    "description": "Network Configuration\n\nNetwork/IPAM configuration for cluster - NetBox compatible",
+    "description": "#WithNetwork attaches NetBox-compatible network and IPAM topology.",
     "additionalProperties": true,
     "properties": {
         "network": {
@@ -99,39 +99,40 @@
                         }
                     }
                 },
+                "domain": {
+                    "type": "string"
+                },
                 "lb_pools": {
                     "type": "object",
-                    "description": "LoadBalancer IP pools (MetalLB)",
                     "additionalProperties": {
                         "$ref": "#/$defs/lb_pool"
                     }
                 },
                 "location": {
-                    "type": "string",
-                    "description": "Geographic location"
+                    "type": "string"
                 },
                 "site": {
-                    "type": "string",
-                    "description": "Site/location identifier"
+                    "type": "string"
                 },
                 "vips": {
                     "type": "object",
-                    "description": "VIP allocations",
                     "additionalProperties": {
                         "$ref": "#/$defs/vip"
                     }
                 },
                 "vlans": {
                     "type": "object",
-                    "description": "VLAN definitions",
                     "additionalProperties": {
                         "$ref": "#/$defs/vlan"
                     }
                 }
             },
             "required": [
-                "vips"
+                "domain"
             ]
         }
-    }
+    },
+    "required": [
+        "network"
+    ]
 }
