@@ -6,11 +6,21 @@ import (
 	"github.com/epcim/mxc/schema/external:external"
 )
 
-#ClusterConfig: {
+// #Cluster represents a concrete compute deployment target.
+#Cluster: {
 	clusterName: string
 	environment: "production" | "staging" | "development"
 
 	env?: [string]: string
+	values?: {
+		[string]: _
+	}
+	context?: {
+		[string]: _
+	}
+	if context != _|_ {
+		values: context
+	}
 
 	kube: {
 		type: "microk8s" | "k3s" | "talos" | "eks" | "gke" | "aks" | "kind" | "kwok"
@@ -44,11 +54,14 @@ import (
 	}
 
 	// Grouped application specifications by category/group (e.g., example, games, infra, etc.)
-	apps: [Category=string]: [AppKey=string]: #AppCore
+	apps: [Category=string]: [AppKey=string]: #App
 
 	// Validated Kubernetes NetworkPolicies
 	networkPolicies?: [string]: external.#K8sNetworkPolicy
 }
+
+// Deprecated alias for backward compatibility
+#ClusterConfig: #Cluster
 
 // #TopologyAlpha composes concrete named clusters and application deployment
 // instances. Reusable profiles remain ordinary CUE definitions and imports;

@@ -7,7 +7,8 @@ import (
 
 #SchemaRef: string | [...string]
 
-#AppCore: {
+// #App is the minimal universal specification for an application workload.
+#App: {
 	appName: string
 	image?: {
 		repository: string
@@ -132,3 +133,6 @@ import (
 		limits:   { cpu: "4", memory: "4Gi" }
 	}
 }
+
+// Deprecated alias for backward compatibility
+#AppCore: #App
