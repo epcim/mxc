@@ -5,7 +5,6 @@
 root := clean(source_dir() + "/..")
 TARGET_DEFAULT := `echo "${TARGET:-cluster-home-mxc}" | sed -E 's/(-mxc)?$/-mxc/'`
 GHCR_USER := env_var_or_default("GHCR_USER", "epcim")
-OCI_VERSION := env_var_or_default("OCI_VERSION", "v0.1.0")
 _module_dir := root + "/mxc/module"
 _registry_config := "file:" + root + "/mxc/registry.cue"
 
@@ -336,16 +335,20 @@ ghcr-login:
     printf '%s' "$GHCR_PAT" | docker login ghcr.io -u "{{ GHCR_USER }}" --password-stdin
 
 [group('mxc')]
-oci-package artifact="core" version=OCI_VERSION *args="":
+oci-package artifact="core" version="" *args="":
     just _oci-package {{ artifact }} {{ version }} {{ args }}
 
 [group('mxc')]
-oci-publish artifact="core" version=OCI_VERSION *args="": ghcr-login
+oci-publish artifact="core" version="" *args="": ghcr-login
     just _oci-publish {{ artifact }} {{ version }} {{ args }}
 
 _oci-package artifact version="" *args="":
     #!/usr/bin/env bash
     set -euo pipefail
+    if [[ -z "{{ version }}" ]]; then
+        echo "❌ Error: Version is required (e.g. 'just oci-package {{ artifact }} v0.2.0')" >&2
+        exit 1
+    fi
     export CUE_REGISTRY='{{ _registry_config }}'
     case "{{ artifact }}" in \
       core) \
@@ -359,6 +362,10 @@ _oci-package artifact version="" *args="":
 _oci-publish artifact version="" *args="":
     #!/usr/bin/env bash
     set -euo pipefail
+    if [[ -z "{{ version }}" ]]; then
+        echo "❌ Error: Version is required (e.g. 'just oci-publish {{ artifact }} v0.2.0')" >&2
+        exit 1
+    fi
     export CUE_REGISTRY='{{ _registry_config }}'
     case "{{ artifact }}" in \
       core) \
