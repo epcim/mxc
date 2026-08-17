@@ -11,6 +11,20 @@ This repository is designed to be **fully self-contained and standalone-ready**,
 
 ---
 
+## 💡 Core Philosophy: Minimal Primitives, Shared Tooling & Infinite Extension
+
+MXC is built around a foundational principle: **Keep the core primitives minimal and universal, share the compiler/adapter tooling, and allow consumers to extend or map schemas to their platform reality.**
+
+1. **Minimal & Universal Primitives (`#App`, `#Cluster`, `#Location`, `#Stack`)**:
+   - The core `github.com/epcim/mxc` schema defines the absolute minimal structure required to describe workloads, compute boundaries, and hierarchical environments without vendor or environment lock-in.
+2. **Pluggable & Extensible**:
+   - If your enterprise or cluster topology matches `epcim/mxc`, you can consume `#App` and `#Cluster` directly.
+   - If your deployment platform requires custom metadata, specialized network topology (e.g., F5 XC sites, Cloud VPCs), or custom orchestration flags, you maintain your own domain schemas by **unifying or wrapping** `epcim/mxc` primitives rather than forking the tooling.
+3. **Shared Tooling & Projection Pipeline**:
+   - The compilers, OCI distribution mechanisms, schema validators, and output adapters (Kluctl, Kustomize, ArgoCD, Helm) remain 100% shared, reusable, and uniform across organizations.
+
+---
+
 ## 🏛️ Architecture & Core Components
 
 ```text

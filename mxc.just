@@ -8,6 +8,15 @@ GHCR_USER := env_var_or_default("GHCR_USER", "epcim")
 _module_dir := root + "/mxc/module"
 _registry_config := "file:" + root + "/mxc/registry.cue"
 
+# Format all CUE files in repository / target
+[group('mxc')]
+fmt path="":
+    #!/usr/bin/env bash
+    target="${1:-.}"
+    echo "▶ Formatting CUE files in $target..."
+    find "$target" -name "*.cue" -not -path '*/.git/*' -not -path '*/cue.mod/pkg/*' -exec cue fmt {} +
+    echo "✓ CUE files formatted."
+
 # Run CUE schema validation (cue vet) against MXC rules
 [group('mxc')]
 vet *args="":
