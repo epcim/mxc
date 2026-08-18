@@ -13,6 +13,12 @@ migrate-list:
             "name": "expose_to_appfqdn",
             "desc": "Migrate legacy expose: http: fqdn: ... syntax to top-level appFqdn",
         },
+        {
+            "id": "0002",
+            "oci_version": "v0.1.0",
+            "name": "appcore_to_app",
+            "desc": "Migrate legacy schema.#AppCore to canonical schema.#App",
+        },
     ]
     print(json.dumps(migrations, indent=2))
 
@@ -48,12 +54,28 @@ migrate target="cluster-home-mxc" *args="":
         content = pattern2.sub(repl2, content)
         return content, changes
 
+    def migration_0002_appcore_to_app(content: str) -> tuple[str, int]:
+        changes = 0
+        pattern = re.compile(r'\bschema\.#AppCore\b')
+        def repl(match):
+            nonlocal changes
+            changes += 1
+            return "schema.#App"
+        content = pattern.sub(repl, content)
+        return content, changes
+
     MIGRATIONS = [
         {
             "id": "0001",
             "oci_version": "v0.1.0",
             "name": "expose_to_appfqdn",
             "apply": migration_0001_expose_to_appfqdn,
+        },
+        {
+            "id": "0002",
+            "oci_version": "v0.1.0",
+            "name": "appcore_to_app",
+            "apply": migration_0002_appcore_to_app,
         },
     ]
 
@@ -128,6 +150,11 @@ migrate target="cluster-home-mxc" *args="":
 [group('mxc-migration')]
 migrate-0001 target="cluster-home-mxc" *args="":
     just migrate {{ target }} --migration 0001 {{ args }}
+
+# Run migration 0002: v0.1.0 schema.#AppCore to schema.#App
+[group('mxc-migration')]
+migrate-0002 target="cluster-home-mxc" *args="":
+    just migrate {{ target }} --migration 0002 {{ args }}
 
 # Alias for backward compatibility
 [group('mxc-migration')]
