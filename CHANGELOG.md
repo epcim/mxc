@@ -4,6 +4,28 @@
 
 ### Added
 
+#### Target Platform Adaptation & Multi-Plane Bindings (MXC-PROP-004)
+
+- **Target Platform Adaptation Schema (`#Platform` & `schema/platforms/`)**:
+  - Pristine `#Platform` primitive with open outer seams (`...`) allowing workloads to specify requirements across distinct runtime environments (`k8s`, `compose`, `aws`, `k0rdent`).
+  - Scoped domain specifications:
+    - `#PlatformK8s` (`schema/platforms/k8s.cue`): Cluster name, namespace, distribution, storage class mapping, ingress annotations, and scoped engines (`kustomize`, `helmChart`).
+    - `#PlatformCompose` (`schema/platforms/compose.cue`): Container names, restart policies, network modes, extra hosts.
+    - `#PlatformAWS` (`schema/platforms/aws.cue`): AWS regions, account IDs, IAM roles, S3 buckets, and Terraform modules.
+    - `#PlatformK0rdent` (`schema/platforms/k0rdent.cue`): Mirantis K0rdent service templates, multicluster routing, and values.
+  - Dedicated `schema/mxc/` package: Consolidated MXC reference profile and composable facets (`#ImageSpec`, `#PortsSpec`, `#StorageSpec`, `#KubeSpec`, `#PlatformMxc`, `#PlatformMxcLab`, `#PlatformSimple`).
+
+- **"Rule of Three Buckets" Workload Architecture**:
+  - Cleanly separates workload definitions into **Abstract Intent** (`image`, `ports`, `storage: { size, tier }`, `expose`), **Workload Values Payload** (`values` / `context` 1:1 symmetric bag), and **Platform Scope** (`platform: { k8s, compose, aws, k0rdent }`).
+  - Polymorphic `values`: Supports arbitrary non-bjw-s structures (native Helm chart values, Terraform module `tfvars`, Docker Compose variables) based on the target adapter without schema restriction.
+
+- **Non-Breaking Escape Hatch Bridging**:
+  - `#AppMxc` automatically bridges root-level `kustomize` and `k0rdent` into `platform.k8s.kustomize` and `platform.k0rdent`, ensuring 100% backward compatibility for all existing cluster workspaces.
+  - `#WithPlatform` facet added to `#ClusterConfig`.
+
+- **Multi-Adapter Composition & Execution**:
+  - Documented pattern for instantiating upstream and local custom adapters inside an open `adapters: { ... }` registry map satisfying `#Projection: { cluster: #Cluster, output: _ }`.
+
 #### Minimal Core Primitives & Composable Facets (MXC-PROP-003)
 
 - **Ultra-Minimal `#App` Core** (`schema/apps.cue`):
@@ -15,10 +37,17 @@
   - Pre-composed intent contract unifying `#App` with container lifecycles (`image`), networking (`ports`, `expose`), storage (`storage`), credentials (`secrets`), and platform escape hatches (`kustomize`, `k0rdent`, `helmChart`).
   - Backward compatibility: Aliased to `#AppSimple` and `#AppCore`. Existing workloads compile with zero code changes.
 
-- **Consolidated Kubernetes & Container Facet Package** (`schema/mxc_k8s`):
-  - Dedicated package (`github.com/epcim/mxc/schema/mxc_k8s`) defining `#ImageSpec`, `#PortsSpec`, `#ExposeSpec`, `#StorageSpec`, `#SecretsSpec`, `#ResourcesSpec`, and `#KubeSpec`.
+- **Consolidated MXC Reference Facet Package** (`schema/mxc`):
+  - Dedicated package (`github.com/epcim/mxc/schema/mxc`) defining `#ImageSpec`, `#PortsSpec`, `#ExposeSpec`, `#StorageSpec`, `#SecretsSpec`, `#ResourcesSpec`, `#KubeSpec`, and platform profiles (`#PlatformMxc`, `#PlatformMxcLab`, `#PlatformSimple`).
   - Open struct tails (`...`) on all facets allow adding rich metadata (e.g. `pullSecrets`, `digest`, custom annotations) without validation friction.
-  - Named `mxc_k8s` to explicitly separate MXC high-level intent from official upstream Kubernetes API schemas (`cue.dev/x/k8s.io` / `k8s.io/api/...`).
+  - Consolidates reference implementation facets into a clean, unified namespace separated from pristine unopinionated core primitives.
+
+- **OCI Package Name Alignment (`mxc` & `mxc-library`)**:
+  - `just oci-package` and `just oci-publish` now target exact CUE module identities by default:
+    - **`mxc`** (`ghcr.io/epcim/mxc:<tag>`, module `github.com/epcim/mxc@v0`).
+    - **`mxc-library`** (`ghcr.io/epcim/mxc-library:<tag>`, module `github.com/epcim/mxc-library@v0`).
+  - Legacy aliases (`core` and `library`) are retained as backward-compatible dispatch targets.
+  - Aligned [`.github/workflows/publish-oci.yml`](.github/workflows/publish-oci.yml) and [`docs/oci-publishing.md`](docs/oci-publishing.md).
 
 - **Ultra-Minimal `#Cluster` & Platform Facets** (`schema/cluster.cue`):
   - Ultra-minimal `#Cluster` capturing only compute target identity (`clusterName`), environment tier (`environment`), environment variables (`env`), and custom parameters (`values`).

@@ -25,7 +25,9 @@ mxc (as repo)
 │   +-- schema/                # Central, tool-agnostic validation rules
 │   │   +-- apps.cue           # Workload intent schema (#App, #AppMxc)
 │   │   +-- cluster.cue        # Compute boundaries & facets (#Cluster, #WithKube, #WithNetwork)
-│   │   +-- mxc_k8s/           # Container & K8s facet package (workload.cue, cluster.cue)
+│   │   +-- platform.cue       # Platform primitive (#Platform) & profiles re-export
+│   │   +-- platforms/         # Pure platform execution schemas (k8s, compose, aws, k0rdent)
+│   │   +-- mxc/               # MXC reference profile & container facets (#ImageSpec, #KubeSpec, #PlatformMxc)
 │   │   +-- adapter.cue        # Decoupled output adapter interface (#Adapter)
 │   │
 │   +-- adapters/              # Platform Output Adapters (AD-003)

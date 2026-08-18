@@ -2,7 +2,7 @@ package test
 
 import (
 	schema "github.com/epcim/mxc/schema:schema"
-	k8s "github.com/epcim/mxc/schema/mxc_k8s:mxc_k8s"
+	mxc "github.com/epcim/mxc/schema/mxc:mxc"
 )
 
 // Test 1: Ultra-minimal #App (e.g. for native Helm charts)

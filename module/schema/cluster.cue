@@ -4,7 +4,7 @@ package schema
 import (
 	alpha "github.com/epcim/mxc/schema/alpha:alpha"
 	"github.com/epcim/mxc/schema/external:external"
-	"github.com/epcim/mxc/schema/mxc_k8s:mxc_k8s"
+	"github.com/epcim/mxc/schema/mxc:mxc"
 )
 
 // #Cluster is the ultra-minimal compute deployment target primitive.
@@ -29,7 +29,7 @@ import (
 
 // #WithKube attaches Kubernetes platform properties.
 #WithKube: {
-	kube: mxc_k8s.#KubeSpec
+	kube: mxc.#KubeSpec
 	...
 }
 
@@ -82,6 +82,12 @@ import (
 	...
 }
 
+// #WithPlatform attaches target platform adaptation configuration.
+#WithPlatform: {
+	platform?: #Platform
+	...
+}
+
 // #WithPolicies attaches Kubernetes NetworkPolicy definitions.
 #WithPolicies: {
 	networkPolicies?: [string]: external.#K8sNetworkPolicy
@@ -89,7 +95,7 @@ import (
 }
 
 // #ClusterConfig is the unified default cluster contract for backward compatibility.
-#ClusterConfig: #Cluster & #WithKube & #WithNetwork & #WithApps & #WithPolicies
+#ClusterConfig: #Cluster & #WithKube & #WithNetwork & #WithApps & #WithPolicies & #WithPlatform
 
 // #TopologyAlpha composes concrete named clusters and application deployment instances.
 #TopologyAlpha: {

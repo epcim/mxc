@@ -40,4 +40,4 @@ jobs:
         env:
           GHCR_PAT: ${{ secrets.GHCR_PAT }}
           OCI_VERSION: ${{ inputs.version }}
-        run: just oci-publish core "${OCI_VERSION}"
+        run: just oci-publish mxc "${OCI_VERSION}"

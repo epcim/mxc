@@ -27,12 +27,28 @@ Currently, [`mxc/module/adapters/kluctl/projection.cue`](module/adapters/kluctl/
 1.  Shift global overlays compilation out of `projection.cue` into independent CUE overlay generators matching the "Subscriber & Validator" pattern.
 2.  Allow apps to declare local, self-contained overlay payloads that are projected directly into output directories, removing the global `overlays` unification bottleneck.
 
-### ⬜ Task 1.3: Enforce Phased Deprecations for Schema Changes
-*   **Concept**: Maintain perfect, 100% backward-compatibility when modifying schema definitions. Rather than making immediate breaking cuts, changes must occur in a phased deprecation pattern to prevent breaking downstream stack repositories or user cluster configs.
-*   **Action Items**:
-1.  When refactoring fields, retain legacy properties as auto-derived/computed fields unified under-the-hood from the new source of truth.
-2.  Annotate deprecated properties clearly with a `// TODO: Deprecate...` statement.
-3.  Plan migrations in three steps: (1) schema supports both new and derived old fields, (2) update external repos (`mxc-library`) to use new fields, (3) safely clean up old fields.
+### ⬜ Task 1.3: 2-Week Phased Deprecation Schedule (Target: 2026-09-01)
+*   **Concept**: Execute the 3-step phased deprecation roadmap across core compiler schemas, downstream stacks (`mxc-library`), and cluster GitOps targets within a strict 2-week migration window.
+*   **3-Step Phased Deprecation Protocol**:
+    1.  **Step 1 (Days 1–3, Current): Dual-Representation & Auto-Derivation**:
+        - Retain legacy aliases/keys with under-the-hood auto-derivation from the new source of truth.
+        - Mark legacy properties with `// TODO: Deprecate by 2026-09-01`.
+    2.  **Step 2 (Days 4–10, Week 1): Downstream Migration & Warning Phase**:
+        - Migrate all downstream consumers (`mxc-library` stacks, `cluster-home-mxc`, CI/CD workflows) to the new interfaces.
+        - Add non-fatal deprecation warnings in compiler export tasks for deprecated fields.
+    3.  **Step 3 (Days 11–14, Week 2): Canonical Cutover & Schema Cleanup**:
+        - Safely remove auto-derivation bridges, aliases, and deprecated fields from the core schemas.
+        - Enforce strict `close()` constraints on clean primitives.
+
+*   **Active Deprecation Targets & Milestones**:
+
+    | Target | Legacy Interface | New Standard | Week 1: Migration (Due Day 7) | Week 2: Cleanup (Due Day 14) |
+    |---|---|---|---|---|
+    | **1. Export Key** | `mxc_vars` | `adapters.kluctl.output` | Migrate cluster `vars-env.cue` & CI to `adapters.<target>.output` | Remove `mxc_vars` alias; default export to adapter output |
+    | **2. Workload Platform Escape Hatches** | Root `kustomize`, `k0rdent`, `helmChart` on `#App` | `platform.k8s.kustomize`, `platform.k0rdent`, `platform.k8s.helmChart` | Migrate `mxc-library` stacks to `platform: { k8s: { ... } }` | Remove root-level bridge from `#AppMxc` |
+    | **3. Core App Contract Naming** | `#AppCore`, `#AppSimple` | `#App` (minimal) & `#AppMxc` (container facet) | Update all library stack definitions to `#AppMxc` / `#App` | Remove `#AppCore` backward-compatibility alias |
+    | **4. OCI Artifact Identifiers** | `core`, `library` | `mxc`, `mxc-library` | Update all external CI workflows & documentation | Remove `core`/`library` aliases from `mxc.just` |
+    | **5. Legacy Facet Imports** | `schema/mxc_k8s`, `schema/mxc_platform` | `schema/mxc` (`package mxc`) | Audit and migrate external imports to `schema/mxc` | Seal `schema/mxc` package layout |
 
 ---
 

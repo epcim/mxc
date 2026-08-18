@@ -312,6 +312,7 @@ schema-export:
     echo "▶ Exporting custom CUE schemas to JSON Schema..."
     (cd {{ _module_dir }} && cue export ./schema -e '#WithNetwork' --out jsonschema) > {{ root }}/mxc/docs/generated-schema/vars-net.schema.json
     (cd {{ _module_dir }} && cue export ./schema -e '#WithKube' --out jsonschema) > {{ root }}/mxc/docs/generated-schema/vars-k8s.schema.json
+    (cd {{ _module_dir }} && cue export ./schema -e '#Platform' --out jsonschema) > {{ root }}/mxc/docs/generated-schema/platform.schema.json
     (cd {{ _module_dir }} && cue export ./schema --out jsonschema -e '#ClusterConfig') > {{ root }}/mxc/docs/generated-schema/mxc-cluster.schema.json
     echo "✓ Exported JSON schemas into mxc/docs/generated-schema/."
 
@@ -344,11 +345,11 @@ ghcr-login:
     printf '%s' "$GHCR_PAT" | docker login ghcr.io -u "{{ GHCR_USER }}" --password-stdin
 
 [group('mxc')]
-oci-package artifact="core" version="" *args="":
+oci-package artifact="mxc" version="" *args="":
     just _oci-package {{ artifact }} {{ version }} {{ args }}
 
 [group('mxc')]
-oci-publish artifact="core" version="" *args="": ghcr-login
+oci-publish artifact="mxc" version="" *args="": ghcr-login
     just _oci-publish {{ artifact }} {{ version }} {{ args }}
 
 _oci-package artifact version="" *args="":
@@ -360,12 +361,12 @@ _oci-package artifact version="" *args="":
     fi
     export CUE_REGISTRY='{{ _registry_config }}'
     case "{{ artifact }}" in \
-      core) \
+      mxc|core) \
         cd "{{ _module_dir }}" && cue mod tidy --check && cue vet ./schema/... && cue vet ./adapters/... && just -f "{{ root }}/mxc/Justfile" test-alpha && cue mod publish "{{ version }}" --dry-run --json {{ args }} ;; \
-      library) \
+      mxc-library|library) \
         cd "{{ root }}/mxc-library/module" && cue mod tidy --check && cue vet ./... && cue mod publish "{{ version }}" --dry-run --json {{ args }} ;; \
       *) \
-        echo "Unsupported OCI artifact: {{ artifact }}" >&2; exit 1 ;; \
+        echo "Unsupported OCI artifact: {{ artifact }} (expected 'mxc' or 'mxc-library')" >&2; exit 1 ;; \
     esac
 
 _oci-publish artifact version="" *args="":
@@ -377,10 +378,10 @@ _oci-publish artifact version="" *args="":
     fi
     export CUE_REGISTRY='{{ _registry_config }}'
     case "{{ artifact }}" in \
-      core) \
+      mxc|core) \
         cd "{{ _module_dir }}" && cue mod tidy --check && cue vet ./schema/... && cue vet ./adapters/... && just -f "{{ root }}/mxc/Justfile" test-alpha && cue mod publish "{{ version }}" {{ args }} ;; \
-      library) \
+      mxc-library|library) \
         cd "{{ root }}/mxc-library/module" && cue mod tidy --check && cue vet ./... && cue mod publish "{{ version }}" {{ args }} ;; \
       *) \
-        echo "Unsupported OCI artifact: {{ artifact }}" >&2; exit 1 ;; \
+        echo "Unsupported OCI artifact: {{ artifact }} (expected 'mxc' or 'mxc-library')" >&2; exit 1 ;; \
     esac

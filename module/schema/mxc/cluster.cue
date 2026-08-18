@@ -1,5 +1,5 @@
 // vim: set ts=2 sw=2 et :
-package mxc_k8s
+package mxc
 
 // #KubeSpec defines Kubernetes platform and cluster runtime configurations.
 #KubeSpec: {

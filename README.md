@@ -11,20 +11,29 @@ This repository is designed to be **fully self-contained and standalone-ready**,
 
 ---
 
-## 💡 Core Philosophy: Minimal Primitives, Shared Tooling & Infinite Extension
+## 💡 Core Philosophy: Low Learning Curve, Upstream Fidelity & AI-Ready Architecture
 
-MXC is built around a foundational principle: **Keep the core primitives minimal and universal, share the compiler/adapter tooling, and allow consumers to extend or map schemas to their platform reality.**
+MXC is designed around three foundational principles: **Zero Steep Learning Curve**, **Direct Upstream Fidelity**, and **AI-First Maintainability**.
 
-1. **Minimal & Universal Primitives (`#App`, `#Cluster`, `#Location`, `#Stack`)**:
-   - The core `github.com/epcim/mxc` schema defines the absolute minimal structure required to describe workloads, compute boundaries, and hierarchical environments without vendor or environment lock-in.
-   - Container intent is captured cleanly via the pre-composed `#AppMxc` contract, which draws composable facets from `schema/mxc_k8s` (`#ImageSpec`, `#PortsSpec`, `#ExposeSpec`, `#StorageSpec`, `#SecretsSpec`).
-2. **Composable Platform Facets (`#WithKube`, `#WithNetwork`, `#WithApps`, `#WithPolicies`)**:
-   - Physical infrastructure concerns (like NetBox IPAM, VIP pools, and VLANs) are isolated in `#WithNetwork` at the cluster boundary (`cluster-home-mxc`), keeping `#AppMxc` thin, portable, and cloud-agnostic.
-3. **Pluggable & Extensible**:
-   - If your enterprise or cluster topology matches `epcim/mxc`, you can consume `#AppMxc` and composed `#Cluster` directly.
-   - If your deployment platform requires custom metadata, specialized network topology, or custom orchestration flags, you maintain your own domain schemas by **unifying or wrapping** `epcim/mxc` primitives without forking the tooling.
-4. **Shared Tooling & Projection Pipeline**:
-   - The compilers, OCI distribution mechanisms, schema validators, and output adapters (Kluctl, Kustomize, ArgoCD, Helm) remain 100% shared, reusable, and uniform across organizations.
+1. **No Steep Learning Curve (Pure Declarative Data)**:
+   - CUE is a strict superset of JSON and YAML. There are no proprietary programming paradigms, imperative macros, or hidden domain-specific languages (DSLs) to learn.
+   - If you know how to write a Kubernetes manifest, Docker Compose file, or Helm `values.yaml`, you already know how to write MXC configurations.
+
+2. **Direct Upstream Specification Fidelity**:
+   - Rather than inventing artificial, leaky abstractions that get out of date, MXC embeds and directly leverages **native upstream specifications**:
+     - Kubernetes objects and Kustomize JSON patches (`external.#Kustomization`).
+     - Upstream Helm chart `values` schemas validated directly at compile-time.
+     - Docker Compose parameters and AWS Terraform structures.
+   - You retain 100% feature-fidelity with upstream tools without waiting for framework updates.
+
+3. **AI-Driven Adapter & Skill Architecture (2026 Era)**:
+   - In modern workflows, developers and platform engineers do not waste time hand-writing brittle boilerplate glue or complex manifest translations.
+   - **Adapters and scaffolding are managed natively by AI agent skills and coding assistants** (e.g. Gemini, Claude, AGY CLI).
+   - Human operators declare high-level intent (`image`, `ports`, `storage`, `expose`), while AI agents generate, validate, and adapt the underlying rendering pipelines across Kluctl, Helm, ArgoCD, or K0rdent seamlessly.
+
+4. **Minimal Primitives & Composable Profiles**:
+   - **Pristine Primitives (`#App`, `#Cluster`, `#Platform`, `#Adapter`)**: Completely neutral, unopinionated foundation with zero vendor lock-in.
+   - **MXC Reference Profile (`schema/mxc/`)**: A "batteries-included" reference implementation providing pre-composed container facets (`#ImageSpec`, `#PortsSpec`, `#StorageSpec`) and platform defaults (`#PlatformMxc`, `#PlatformMxcLab`). Custom teams can adopt `schema/mxc/` out of the box or define their own corporate profile alongside it.
 
 ---
 
@@ -34,8 +43,9 @@ MXC is built around a foundational principle: **Keep the core primitives minimal
 mxc/
 ├── module/             # Publishable github.com/epcim/mxc CUE module
 │   ├── cue.mod/
-│   ├── schema/         # Compiler rules (#App, #AppMxc, #Cluster, #WithKube, #WithNetwork)
-│   │   ├── mxc_k8s/    # Container and K8s facet package (workload.cue, cluster.cue)
+│   ├── schema/         # Compiler rules (#App, #AppMxc, #Cluster, #Platform, #WithPlatform)
+│   │   ├── platforms/  # Pure target execution platform schemas (k8s, compose, aws, k0rdent)
+│   │   ├── mxc/        # Consolidated MXC reference profile & facets (#ImageSpec, #KubeSpec, #PlatformMxc)
 │   │   ├── alpha/      # Alpha deployment schemas (#TopologyAlpha, #DeployAlpha)
 │   │   └── external/   # Upstream & third-party schemas (Kustomize, NetBird)
 │   └── adapters/       # Kluctl, Helm, Kustomize, ArgoCD and catalog adapters

@@ -22,8 +22,11 @@ All MXC configurations are self-contained inside the `./mxc/` directory at the r
 mxc/                               # Fully self-contained CUE configuration kernel at repository root
 +-- cue.mod/                   # CUE module metadata (github.com/epcim/mxc)
     +-- schema/                    # Central, tool-agnostic validation rules
-    │   +-- apps.cue               # Workload intent schema (#AppCore)
-    │   +-- cluster.cue            # Infrastructure boundaries (#ClusterConfig)
+    │   +-- apps.cue               # Workload intent schema (#App, #AppMxc)
+    │   +-- cluster.cue            # Infrastructure boundaries (#Cluster, #WithKube, #WithNetwork)
+    │   +-- platform.cue           # Platform primitive (#Platform) & profiles re-export
+    │   +-- platforms/             # Pure platform execution schemas (k8s, compose, aws, k0rdent)
+    │   +-- mxc/                   # MXC reference profile & container facets (#ImageSpec, #KubeSpec, #PlatformMxc)
     │   +-- adapter.cue            # Decoupled output adapter interface (#Adapter)
     │
     +-- adapters/                  # Platform Output Adapters (AD-003)

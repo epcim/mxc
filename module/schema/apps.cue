@@ -3,7 +3,7 @@ package schema
 
 import (
 	"github.com/epcim/mxc/schema/external:external"
-	"github.com/epcim/mxc/schema/mxc_k8s:mxc_k8s"
+	"github.com/epcim/mxc/schema/mxc:mxc"
 )
 
 #SchemaRef: string | [...string]
@@ -13,8 +13,8 @@ import (
 #App: {
 	appName: string
 
-	// Open rendering adapter selector (defaults to "export" for raw value dump)
-	adapter: string | *"export"
+	// Open rendering adapter selector (defaults to "kluctl")
+	adapter: *"kluctl" | string
 
 	// Backward-compatibility alias for legacy 'deployment'
 	deployment?: string
@@ -48,6 +48,9 @@ import (
 	// Flavor / sizing tier selector
 	flavor?: string
 
+	// Target platform adaptation requirements and bindings
+	platform?: #Platform
+
 	// Logical tags for stack/feature grouping and cascading
 	tags?: [...string]
 
@@ -59,16 +62,16 @@ import (
 #AppMxc: #App & {
 	adapter: *"kluctl" | string
 
-	image?:   mxc_k8s.#ImageSpec
-	ports?:   mxc_k8s.#PortsSpec
-	expose?:  mxc_k8s.#ExposeSpec
-	storage?: mxc_k8s.#StorageSpec
-	secrets?: mxc_k8s.#SecretsSpec
+	image?:   mxc.#ImageSpec
+	ports?:   mxc.#PortsSpec
+	expose?:  mxc.#ExposeSpec
+	storage?: mxc.#StorageSpec
+	secrets?: mxc.#SecretsSpec
 
-	// Dynamic kustomize context mappings matching full upstream schemas
+	// Dynamic kustomize context mappings matching full upstream schemas (auto-bridged to platform.k8s.kustomize)
 	kustomize?: external.#Kustomization
 
-	// Escape hatch for Mirantis K0rdent service configurations
+	// Escape hatch for Mirantis K0rdent service configurations (auto-bridged to platform.k0rdent)
 	k0rdent?: {
 		serviceSpec?: {
 			[string]: _
@@ -77,6 +80,14 @@ import (
 		values?: {
 			[string]: _
 		}
+	}
+
+	// Automatic bridging to canonical platform scopes
+	if kustomize != _|_ {
+		platform: k8s: kustomize: kustomize
+	}
+	if k0rdent != _|_ {
+		platform: k0rdent: k0rdent
 	}
 
 	// Application-specific templates or custom overlays configuration
@@ -90,9 +101,9 @@ import (
 	...
 }
 
-// Re-export resource specifications from mxc_k8s facet
-#ResourcesSpec:   mxc_k8s.#ResourcesSpec
-#ResourcePresets: mxc_k8s.#ResourcePresets
+// Re-export resource specifications from mxc facet
+#ResourcesSpec:   mxc.#ResourcesSpec
+#ResourcePresets: mxc.#ResourcePresets
 
 // Backward compatibility aliases
 #AppSimple: #AppMxc

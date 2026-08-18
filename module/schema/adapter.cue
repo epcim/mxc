@@ -10,7 +10,10 @@ package schema
 	clusterName:  cluster.clusterName
 	environment:  cluster.environment
 	domain:       cluster.network.domain
-	ingressClass: cluster.kube.ingress.class
+	ingressClass?: string
+	if cluster.kube.ingress != _|_ && cluster.kube.ingress.class != _|_ {
+		ingressClass: cluster.kube.ingress.class
+	}
 	env: [if cluster.env != _|_ {cluster.env}, {}][0]
 
 	apps?: [string]:     _
@@ -33,9 +36,12 @@ package schema
 	clusterName:  cluster.clusterName
 	environment:  cluster.environment
 	domain:       cluster.network.domain
-	ingressClass: cluster.kube.ingress.class
+	ingressClass?: string
+	if cluster.kube.ingress != _|_ && cluster.kube.ingress.class != _|_ {
+		ingressClass: cluster.kube.ingress.class
+	}
 	annotations?: [string]: string
-	if cluster.kube.ingress.annotations != _|_ {
+	if cluster.kube.ingress != _|_ && cluster.kube.ingress.annotations != _|_ {
 		annotations: cluster.kube.ingress.annotations
 	}
 

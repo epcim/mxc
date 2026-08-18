@@ -82,11 +82,11 @@ git status --short -- module
 
 ## Validate and Package
 
-Run the complete core validation and OCI dry run:
+Run the complete module validation and OCI dry run:
 
 ```bash
 just test-alpha
-just oci-package core v0.1.0
+just oci-package mxc v0.1.0
 ```
 
 The dry run resolves the module to:
@@ -104,7 +104,7 @@ The publish recipe refuses to continue when `GHCR_PAT` is absent. It performs
 the Docker login internally using `GHCR_USER` and `GHCR_PAT`:
 
 ```bash
-just oci-publish core v0.1.0
+just oci-publish mxc v0.1.0
 ```
 
 After the first publication, open the package settings on GitHub and set the

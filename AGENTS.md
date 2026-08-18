@@ -89,7 +89,7 @@ The network topology, CIDRs, VLANs, and VIP (Virtual IP) pools are strictly gove
 *   **Editor Autocomplete**: Auto-generated into `mxc/docs/generated-schema/vars-net.schema.json` via our schema-exporter to provide instant YAML diagnostics and validations.
 
 ### 4. Kubernetes Cluster platform Schema (`#WithKube` ➔ `vars-k8s.schema.json`)
-The Kubernetes distribution type, global container environments, storage classes, and ingress base-annotations are modeled by the `#WithKube` / `#KubeSpec` schema in [`mxc/module/schema/cluster.cue`](module/schema/cluster.cue) and [`mxc/module/schema/mxc_k8s/cluster.cue`](module/schema/mxc_k8s/cluster.cue).
+The Kubernetes distribution type, global container environments, storage classes, and ingress base-annotations are modeled by the `#WithKube` / `#KubeSpec` schema in [`mxc/module/schema/cluster.cue`](module/schema/cluster.cue) and [`mxc/module/schema/mxc/cluster.cue`](module/schema/mxc/cluster.cue).
 *   **Key Fields**: `type` (enum of talos, k3s, microk8s, etc.), `namespaces`, `storage` (default/local/performance class), `ingress` (class, global annotations).
 *   **Editor Autocomplete**: Auto-generated into `mxc/docs/generated-schema/vars-k8s.schema.json` to enable automated linting for platform changes in `vars-k8s.yml`.
 
