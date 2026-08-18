@@ -14,6 +14,14 @@
                     "type": "string",
                     "description": "Open rendering adapter selector (defaults to \"kluctl\")"
                 },
+                "appDesc": {
+                    "type": "string",
+                    "description": "Optional human-readable description for catalog and inventory"
+                },
+                "appFqdn": {
+                    "type": "string",
+                    "description": "Root FQDN identifier for the application instance (defaults to appName.<cluster.domain>)"
+                },
                 "appName": {
                     "type": "string"
                 },
@@ -73,11 +81,13 @@
                 },
                 "env": {
                     "type": "object",
+                    "description": "TODO: Deprecate top-level env in favor of platform.env",
                     "additionalProperties": {
                         "type": "string"
                     }
                 },
                 "environment": {
+                    "description": "Lifecycle stage",
                     "anyOf": [
                         {
                             "const": "production"
@@ -101,6 +111,28 @@
             "required": [
                 "clusterName",
                 "environment"
+            ]
+        },
+        "ClusterMxc": {
+            "description": "#ClusterMxc is the unified default cluster contract.",
+            "allOf": [
+                {
+                    "$ref": "#/$defs/WithPlatform"
+                },
+                {
+                    "$ref": "#/$defs/WithNetwork"
+                },
+                {
+                    "$ref": "#/$defs/WithApps"
+                },
+                {
+                    "$ref": "#/$defs/WithPolicies"
+                },
+                {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "$ref": "#/$defs/Cluster"
+                }
             ]
         },
         "ConfigMapArgs": {
@@ -411,102 +443,6 @@
                     "type": "string"
                 }
             }
-        },
-        "KubeSpec": {
-            "type": "object",
-            "description": "#KubeSpec defines Kubernetes platform and cluster runtime configurations.",
-            "additionalProperties": true,
-            "properties": {
-                "env": {
-                    "type": "object",
-                    "additionalProperties": true,
-                    "properties": {
-                        "TZ": {
-                            "type": "string"
-                        }
-                    }
-                },
-                "ingress": {
-                    "type": "object",
-                    "additionalProperties": true,
-                    "properties": {
-                        "annotations": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        },
-                        "class": {
-                            "type": "string"
-                        }
-                    },
-                    "required": [
-                        "class"
-                    ]
-                },
-                "namespaces": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "storage": {
-                    "type": "object",
-                    "additionalProperties": true,
-                    "properties": {
-                        "backup": {
-                            "type": "string"
-                        },
-                        "default": {
-                            "type": "string"
-                        },
-                        "local": {
-                            "type": "string"
-                        },
-                        "performance": {
-                            "type": "string"
-                        }
-                    },
-                    "required": [
-                        "default"
-                    ]
-                },
-                "type": {
-                    "description": "Kubernetes distribution type",
-                    "anyOf": [
-                        {
-                            "const": "microk8s"
-                        },
-                        {
-                            "const": "k3s"
-                        },
-                        {
-                            "const": "talos"
-                        },
-                        {
-                            "const": "eks"
-                        },
-                        {
-                            "const": "gke"
-                        },
-                        {
-                            "const": "aks"
-                        },
-                        {
-                            "const": "kind"
-                        },
-                        {
-                            "const": "kwok"
-                        },
-                        {
-                            "type": "string"
-                        }
-                    ]
-                }
-            },
-            "required": [
-                "type"
-            ]
         },
         "Kustomization": {
             "type": "object",
@@ -2041,19 +1977,6 @@
                 }
             }
         },
-        "WithKube": {
-            "type": "object",
-            "description": "#WithKube attaches Kubernetes platform properties.",
-            "additionalProperties": true,
-            "properties": {
-                "kube": {
-                    "$ref": "#/$defs/KubeSpec"
-                }
-            },
-            "required": [
-                "kube"
-            ]
-        },
         "WithNetwork": {
             "type": "object",
             "description": "#WithNetwork attaches NetBox-compatible network and IPAM topology.",
@@ -2213,27 +2136,6 @@
             ]
         }
     },
-    "description": "#ClusterConfig is the unified default cluster contract for backward compatibility.",
-    "allOf": [
-        {
-            "$ref": "#/$defs/WithKube"
-        },
-        {
-            "$ref": "#/$defs/WithNetwork"
-        },
-        {
-            "$ref": "#/$defs/WithApps"
-        },
-        {
-            "$ref": "#/$defs/WithPolicies"
-        },
-        {
-            "$ref": "#/$defs/WithPlatform"
-        },
-        {
-            "type": "object",
-            "additionalProperties": true,
-            "$ref": "#/$defs/Cluster"
-        }
-    ]
+    "description": "#ClusterConfig is retained as a backward-compatibility alias for #ClusterMxc.",
+    "$ref": "#/$defs/ClusterMxc"
 }

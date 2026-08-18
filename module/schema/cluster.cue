@@ -96,8 +96,11 @@ import (
 	...
 }
 
-// #ClusterConfig is the unified default cluster contract for backward compatibility.
-#ClusterConfig: #Cluster & #WithPlatform & #WithNetwork & #WithApps & #WithPolicies
+// #ClusterMxc is the unified default cluster contract.
+#ClusterMxc: #Cluster & #WithPlatform & #WithNetwork & #WithApps & #WithPolicies
+
+// #ClusterConfig is retained as a backward-compatibility alias for #ClusterMxc.
+#ClusterConfig: #ClusterMxc
 
 // #TopologyAlpha composes concrete named clusters and application deployment instances.
 #TopologyAlpha: {

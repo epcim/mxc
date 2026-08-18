@@ -9,6 +9,6 @@ import (
 
 cluster: apps: home: {
 	homarr: _homarr.#Homarr & {
-		expose: http: fqdn: "homarr.\(cluster.network.domain)"
+		appFqdn: "homarr.\(cluster.network.domain)"
 	}
 }

@@ -14,7 +14,7 @@ import (
 
 cluster: apps: media: {
 	silo: _silo.#Silo & {
-		expose: http: fqdn: "silo.\(cluster.network.domain)"
+		appFqdn: "silo.\(cluster.network.domain)"
 		secrets: {
 			secretKey: "{{ secrets.media.silo.secretKey }}"
 			notifications: {
