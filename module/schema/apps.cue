@@ -2,8 +2,8 @@
 package schema
 
 import (
-	"github.com/epcim/mxc/schema/external:external"
-	"github.com/epcim/mxc/schema/mxc:mxc"
+	"github.com/epcim/mxc/schema/external"
+	"github.com/epcim/mxc/schema/mxc"
 )
 
 #SchemaRef: string | [...string]

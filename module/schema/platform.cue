@@ -2,8 +2,8 @@
 package schema
 
 import (
-	"github.com/epcim/mxc/schema/platforms:platforms"
-	"github.com/epcim/mxc/schema/mxc:mxc"
+	"github.com/epcim/mxc/schema/platforms"
+	"github.com/epcim/mxc/schema/mxc"
 )
 
 // #Platform defines the target execution platform requirements and runtime adapter bindings.

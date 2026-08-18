@@ -3,7 +3,7 @@ package argocd
 
 import (
 	"list"
-	"github.com/epcim/mxc/schema:schema"
+	"github.com/epcim/mxc/schema"
 )
 
 // #AppAdapter defines the specific fields mapped for ArgoCD values overrides.

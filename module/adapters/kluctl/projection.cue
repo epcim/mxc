@@ -3,7 +3,7 @@ package kluctl
 
 import (
 	"list"
-	"github.com/epcim/mxc/schema:schema"
+	"github.com/epcim/mxc/schema"
 )
 
 // #AppAdapter handles the 1:1 parameter delivery for a single application.

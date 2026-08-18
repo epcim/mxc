@@ -3,7 +3,7 @@
 package app_template
 
 import (
-	"github.com/epcim/mxc/schema:schema"
+	"github.com/epcim/mxc/schema"
 )
 
 // Helper to project an abstract AppCore definition to standard bjw-s app-template values format

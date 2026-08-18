@@ -2,7 +2,7 @@
 package platforms
 
 import (
-	"github.com/epcim/mxc/schema/external:external"
+	"github.com/epcim/mxc/schema/external"
 )
 
 // #PlatformK8s defines the Kubernetes container execution environment and capability bindings.

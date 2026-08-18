@@ -2,7 +2,7 @@
 package mxc
 
 import (
-	"github.com/epcim/mxc/schema/platforms:platforms"
+	"github.com/epcim/mxc/schema/platforms"
 )
 
 // #PlatformMxc is the default MXC-opinionated platform profile.

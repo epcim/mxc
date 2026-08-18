@@ -2,7 +2,7 @@
 package kluctl
 
 import (
-	"github.com/epcim/mxc/schema:schema"
+	"github.com/epcim/mxc/schema"
 )
 
 // #Validation holds optional package-level validations for the Kluctl adapter.

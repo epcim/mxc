@@ -2,7 +2,7 @@
 package mxc
 
 import (
-	"github.com/epcim/mxc/schema/external:external"
+	"github.com/epcim/mxc/schema/external"
 )
 
 // #ImageSpec defines high-level container image coordinates and pull settings.

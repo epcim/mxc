@@ -2,7 +2,7 @@
 package app_template
 
 import (
-	"github.com/epcim/mxc/schema:schema"
+	"github.com/epcim/mxc/schema"
 )
 
 // Default bjw-s app-template coordinates for Kluctl/Helm deployers

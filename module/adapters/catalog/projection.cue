@@ -2,7 +2,7 @@
 package catalog
 
 import (
-	"github.com/epcim/mxc/schema:schema"
+	"github.com/epcim/mxc/schema"
 )
 
 // #AppAdapter defines the specific fields mapped for the catalog.

@@ -2,7 +2,7 @@
 package schema
 
 import (
-	"github.com/epcim/mxc/schema/external:external"
+	"github.com/epcim/mxc/schema/external"
 )
 
 #K8sPod:               external.#K8sPod

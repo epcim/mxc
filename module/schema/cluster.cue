@@ -2,9 +2,9 @@
 package schema
 
 import (
-	alpha "github.com/epcim/mxc/schema/alpha:alpha"
-	"github.com/epcim/mxc/schema/external:external"
-	"github.com/epcim/mxc/schema/mxc:mxc"
+	alpha "github.com/epcim/mxc/schema/alpha"
+	"github.com/epcim/mxc/schema/external"
+	"github.com/epcim/mxc/schema/mxc"
 )
 
 // #Cluster is the ultra-minimal compute deployment target primitive.
