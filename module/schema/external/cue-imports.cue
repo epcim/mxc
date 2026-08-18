@@ -11,12 +11,12 @@ import (
 )
 
 // Placeholders to keep imports active and fully schema-validated by the compiler
-#K8sPod:                 corev1.#Pod
-#K8sNetworkPolicy:       netv1.#NetworkPolicy
-#CertCertificate:        cert.#Certificate
-#CertChallenge:          acme.#Challenge
-#KyvernoClusterPolicy:   kyverno.#ClusterPolicy
-#DockerComposeConfig:    dockercompose.#Schema
+#K8sPod:               corev1.#Pod
+#K8sNetworkPolicy:     netv1.#NetworkPolicy
+#CertCertificate:      cert.#Certificate
+#CertChallenge:        acme.#Challenge
+#KyvernoClusterPolicy: kyverno.#ClusterPolicy
+#DockerComposeConfig:  dockercompose.#Schema
 
 #PortSpec: {
 	port:     int & >=1 & <=65535
@@ -25,6 +25,6 @@ import (
 
 #VolumeSpec: {
 	enabled?: bool | *true
-	size:  string
-	class?: string
+	size:     string
+	class?:   string
 }

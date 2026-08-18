@@ -8,20 +8,21 @@ import (
 
 // Helper to project an abstract AppCore definition to standard bjw-s app-template values format
 #Projection: {
-	appSpec:      schema.#AppCore
-	cluster:      schema.#ClusterConfig
+	appSpec: schema.#AppCore
+	cluster: schema.#ClusterConfig
 
 	let domain = cluster.network.domain
-	let ingressClass = cluster.kube.ingress.class
-	let _ingressAnnotations = [if cluster.kube.ingress.annotations != _|_ { cluster.kube.ingress.annotations }, {}][0]
+	let _k8sIngress = (cluster & {platform: k8s: ingress: {}}).platform.k8s.ingress
+	let ingressClass = [if _k8sIngress.class != _|_ {_k8sIngress.class}, "traefik"][0]
+	let _ingressAnnotations = [if _k8sIngress.annotations != _|_ {_k8sIngress.annotations}, {}][0]
 
 	// Safely resolve optional ports with a concrete empty struct fallback
-	let portsVal = (appSpec & { ports: {} }).ports
-	let portsList = [for k, v in portsVal { k }]
+	let portsVal = (appSpec & {ports: {}}).ports
+	let portsList = [for k, v in portsVal {k}]
 	let hasPorts = len(portsList) > 0
 
 	// Safely resolve optional expose block
-	let exposeVal = (appSpec & { expose: {} }).expose
+	let exposeVal = (appSpec & {expose: {}}).expose
 
 	// The generated bjw-s app-template values structure
 	output: {
@@ -81,12 +82,13 @@ import (
 				for k, v in exposeVal if v.target == "ingress" {
 					"\(k)": {
 						enabled: true
-						let classVal = [if v.ingressClass != "" { v.ingressClass }, ingressClass][0]
+						let classVal = [if v.ingressClass != "" {v.ingressClass}, ingressClass][0]
 						className: classVal
 						let defaultFqdn = "\(appSpec.appName).\(domain)"
 						let fqdn = [
-							if v.fqdn != _|_ { v.fqdn },
-							if v.fqdn == _|_ { defaultFqdn }
+							if appSpec.appFqdn != _|_ {appSpec.appFqdn},
+							if v.fqdn != _|_ {v.fqdn},
+							defaultFqdn,
 						][0]
 						hosts: [{
 							host: fqdn
@@ -113,14 +115,14 @@ import (
 								}
 							}
 						}
-						if len(mergedAnnotations) > 0 { annotations: mergedAnnotations }
+						if len(mergedAnnotations) > 0 {annotations: mergedAnnotations}
 					}
 				}
 			}
 		}
 
 		// 4. Merge any user-specified context/values overrides
-		if appSpec.values != _|_ { appSpec.values }
-		if appSpec.values == _|_ && appSpec.context != _|_ { appSpec.context }
+		if appSpec.values != _|_ {appSpec.values}
+		if appSpec.values == _|_ && appSpec.context != _|_ {appSpec.context}
 	}
 }

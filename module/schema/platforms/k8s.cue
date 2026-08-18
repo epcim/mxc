@@ -30,8 +30,8 @@ import (
 
 	// Ingress controller configuration and annotations
 	ingress?: {
-		provider?:    string
-		class?:       string
+		provider?: string
+		class?:    string
 		annotations?: [string]: string
 		...
 	}
@@ -44,8 +44,8 @@ import (
 
 	// Runtime pod scheduling & security defaults
 	runtime?: {
-		nodeSelector?:  [string]: string
-		tolerations?:   [...]
+		nodeSelector?: [string]: string
+		tolerations?: [...]
 		priorityClass?: string
 		...
 	}

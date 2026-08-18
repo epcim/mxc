@@ -15,14 +15,12 @@ import (
 	ingressClass: _
 	annotations?: [string]: string
 
-	let _isAppTemplate = len([for s in [if (S.spec.valuesSchema & string) != _|_ { [S.spec.valuesSchema] }, if (S.spec.valuesSchema & [...string]) != _|_ { S.spec.valuesSchema }, []][0] if s == "#app-template" {s}]) > 0
+	let _isAppTemplate = len([for s in [if (S.spec.valuesSchema & string) != _|_ {[S.spec.valuesSchema]}, if (S.spec.valuesSchema & [...string]) != _|_ {S.spec.valuesSchema}, []][0] if s == "#app-template" {s}]) > 0
 
 	// Polymorphic unification: if app-template is selected, unify with its own schema extension.
 	if _isAppTemplate {
 		S & app_template.#KluctlExtension
 	}
-
-
 
 	// Generic fallback parameters for other non-app-template applications.
 	if !_isAppTemplate {
@@ -49,8 +47,8 @@ import (
 				]
 			}
 			context: [
-				if S.spec.values != _|_ { S.spec.values },
-				{}
+				if S.spec.values != _|_ {S.spec.values},
+				{},
 			][0]
 			...
 		}

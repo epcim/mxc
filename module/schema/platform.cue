@@ -32,5 +32,3 @@ import (
 #PlatformMxc:    mxc.#PlatformMxc
 #PlatformMxcLab: mxc.#PlatformMxcLab
 #PlatformSimple: mxc.#PlatformSimple
-
-

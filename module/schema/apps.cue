@@ -13,6 +13,12 @@ import (
 #App: {
 	appName: string
 
+	// Optional human-readable description for catalog and inventory
+	appDesc?: string
+
+	// Root FQDN identifier for the application instance (defaults to appName.<cluster.domain>)
+	appFqdn?: string
+
 	// Open rendering adapter selector (defaults to "kluctl")
 	adapter: *"kluctl" | string
 

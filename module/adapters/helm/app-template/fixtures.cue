@@ -21,7 +21,7 @@ import (
 
 	volumes: {
 		for k, v in appSpec.storage {
-			let isEnabled = [if v.enabled != _|_ { v.enabled }, true][0]
+			let isEnabled = [if v.enabled != _|_ {v.enabled}, true][0]
 			if isEnabled {
 				"\(k)": {
 					enabled: true
@@ -33,7 +33,7 @@ import (
 
 	persistence: {
 		for k, v in appSpec.storage {
-			let isEnabled = [if v.enabled != _|_ { v.enabled }, true][0]
+			let isEnabled = [if v.enabled != _|_ {v.enabled}, true][0]
 			if isEnabled {
 				"\(k)": {
 					enabled:       true
@@ -47,8 +47,8 @@ import (
 
 // Kluctl adapter extension to populate app-template deployment schemas
 #KluctlExtension: {
-	spec:         schema.#AppCore
-	cluster:      schema.#ClusterConfig
+	spec:    schema.#AppCore
+	cluster: schema.#ClusterConfig
 
 	output: {
 		helmChart: #DefaultChart & {
@@ -62,7 +62,7 @@ import (
 		}
 
 		if spec.storage != _|_ {
-			let _storage = #Storage & { appSpec: spec }
+			let _storage = #Storage & {appSpec: spec}
 			volumes:     _storage.volumes
 			persistence: _storage.persistence
 			overlays: pvc: [
@@ -79,7 +79,7 @@ import (
 			"cluster": cluster
 		}).output & {
 			if spec.storage != _|_ {
-				let _storage = #Storage & { appSpec: spec }
+				let _storage = #Storage & {appSpec: spec}
 				persistence: _storage.persistence
 				volumes:     _storage.volumes
 			}

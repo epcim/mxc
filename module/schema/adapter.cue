@@ -3,18 +3,35 @@ package schema
 
 // BaseProjection defines the global, cluster-wide projection properties.
 #BaseProjection: {
-	cluster: #ClusterConfig
+	cluster: #Cluster
 
 	// TODO: Deprecate individual flat mapping of cluster-level globals below,
 	// and instead have downstream templates/renderers directly consume the `cluster` object itself.
-	clusterName:  cluster.clusterName
-	environment:  cluster.environment
-	domain:       cluster.network.domain
-	ingressClass?: string
-	if cluster.kube.ingress != _|_ && cluster.kube.ingress.class != _|_ {
-		ingressClass: cluster.kube.ingress.class
+	clusterName: cluster.clusterName
+	environment: cluster.environment
+	domain?:     string
+	if (cluster & {network: domain: string}).network.domain != _|_ {
+		domain: cluster.network.domain
 	}
-	env: [if cluster.env != _|_ {cluster.env}, {}][0]
+
+	// Merge full platform directly at platform level
+	platform?: #Platform
+	if cluster.platform != _|_ {
+		platform: cluster.platform
+	}
+
+	// Flat properties for downstream rendering engines
+	if platform != _|_ {
+		if platform.k8s.ingress.class != _|_ {
+			ingressClass: platform.k8s.ingress.class
+		}
+		if platform.env != _|_ {
+			env: platform.env
+		}
+	}
+	if cluster.env != _|_ {
+		env: cluster.env
+	}
 
 	apps?: [string]:     _
 	overlays?: [string]: _
@@ -24,7 +41,7 @@ package schema
 // BaseAppAdapter defines the standard 1:1 adapter interface for a single workload.
 #BaseAppAdapter: {
 	spec:    #AppCore
-	cluster: #ClusterConfig
+	cluster: #Cluster
 	// Simple projections inherit appName. Deployment-aware adapters set name
 	// from the DeployAlpha key; instanceName remains an override point.
 	name:         *spec.appName | string
@@ -33,16 +50,29 @@ package schema
 
 	// TODO: Deprecate individual flat mapping of cluster-level globals below,
 	// and instead have adapters directly consume the `cluster` object itself.
-	clusterName:  cluster.clusterName
-	environment:  cluster.environment
-	domain:       cluster.network.domain
-	ingressClass?: string
-	if cluster.kube.ingress != _|_ && cluster.kube.ingress.class != _|_ {
-		ingressClass: cluster.kube.ingress.class
+	clusterName: cluster.clusterName
+	environment: cluster.environment
+	domain?:     string
+	if (cluster & {network: domain: string}).network.domain != _|_ {
+		domain: cluster.network.domain
 	}
-	annotations?: [string]: string
-	if cluster.kube.ingress != _|_ && cluster.kube.ingress.annotations != _|_ {
-		annotations: cluster.kube.ingress.annotations
+
+	// Merge full platform directly at platform level
+	platform?: #Platform
+	if cluster.platform != _|_ {
+		platform: cluster.platform
+	}
+	if spec.platform != _|_ {
+		platform: spec.platform
+	}
+
+	if platform != _|_ {
+		if platform.k8s.ingress.class != _|_ {
+			ingressClass: platform.k8s.ingress.class
+		}
+		if platform.k8s.ingress.annotations != _|_ {
+			annotations: platform.k8s.ingress.annotations
+		}
 	}
 
 	output: {

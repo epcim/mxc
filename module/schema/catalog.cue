@@ -11,22 +11,22 @@ package schema
 // so a catalog entry only needs to say where the CRD comes from and where its output lands.
 #SchemaSource: {
 	type:      "json-schema" | "helm-values-schema" | "openapi"
-	name:      string          // informational identifier
-	repo:      string          // GitHub "owner/repo" the schema is fetched from
-	ref:       string | *"main" // pinned branch/tag -- bump deliberately when re-vendoring, see AD-021
-	path:      string          // path to the schema within repo
+	name:      string                                                               // informational identifier
+	repo:      string                                                               // GitHub "owner/repo" the schema is fetched from
+	ref:       string | *"main"                                                     // pinned branch/tag -- bump deliberately when re-vendoring, see AD-021
+	path:      string                                                               // path to the schema within repo
 	url:       string | *"https://raw.githubusercontent.com/\(repo)/\(ref)/\(path)" // full upstream source URI
-	outputDir: string          // repo-root-relative dir the schema lands in
+	outputDir: string                                                               // repo-root-relative dir the schema lands in
 }
 
 #CRDSource: {
 	type:      *"crd" | string
-	name:      string          // informational identifier + raw CRD YAML filename stem
-	repo:      string          // GitHub "owner/repo" the CRD YAML is fetched from
-	ref:       string | *"main" // pinned branch/tag -- bump deliberately when re-vendoring, see AD-021
-	path:      string          // path to the CRD YAML within repo
+	name:      string                                                               // informational identifier + raw CRD YAML filename stem
+	repo:      string                                                               // GitHub "owner/repo" the CRD YAML is fetched from
+	ref:       string | *"main"                                                     // pinned branch/tag -- bump deliberately when re-vendoring, see AD-021
+	path:      string                                                               // path to the CRD YAML within repo
 	url:       string | *"https://raw.githubusercontent.com/\(repo)/\(ref)/\(path)" // full upstream source URI
-	outputDir: string          // repo-root-relative dir the CRD yaml + generated schema/defaults land in
+	outputDir: string                                                               // repo-root-relative dir the CRD yaml + generated schema/defaults land in
 }
 
 catalog: [...#CRDSource | #SchemaSource] & [
@@ -47,4 +47,3 @@ catalog: [...#CRDSource | #SchemaSource] & [
 		outputDir: "schema/external"
 	},
 ]
-

@@ -7,16 +7,14 @@ import (
 
 // #Validation holds optional package-level validations for the ArgoCD adapter.
 // These are unified with the #Projection block to enforce SRE boundaries.
-#Projection: {
-	cluster: schema.#ClusterConfig
-
+#Projection: P=schema.#BaseProjection & {
 	// Optional ArgoCD workload constraints
-	for catKey, catApps in cluster.apps {
+	for catKey, catApps in P.cluster.apps {
 		for appKey, appSpec in catApps {
 			if appSpec.deployment == "argocd" {
 				// Assert namespace is set if kustomize block is defined
 				if appSpec.kustomize != _|_ {
-					appSpec: kustomize: namespace: !=""
+					cluster: apps: "\(catKey)": "\(appKey)": kustomize: namespace: !=""
 				}
 			}
 		}

@@ -7,6 +7,10 @@ import (
 
 // #PlatformMxc is the default MXC-opinionated platform profile.
 #PlatformMxc: {
+	env: {
+		TZ:       *"UTC" | string
+		[string]: string
+	}
 	k8s: platforms.#PlatformK8s & {
 		distribution: *"talos" | string
 		storage: {
@@ -22,6 +26,10 @@ import (
 
 // #PlatformSimple provides a minimal, single-node K8s reference profile.
 #PlatformSimple: {
+	env: {
+		TZ:       *"UTC" | string
+		[string]: string
+	}
 	k8s: platforms.#PlatformK8s & {
 		distribution: "k8s"
 		storage: defaultClass: "standard"
@@ -32,10 +40,14 @@ import (
 
 // #PlatformMxcLab provides standard reference defaults for a Talos + Traefik homelab environment.
 #PlatformMxcLab: {
+	env: {
+		TZ:       *"Europe/Prague" | string
+		[string]: string
+	}
 	k8s: platforms.#PlatformK8s & {
-		distribution: "talos"
+		distribution: *"talos" | string
 		storage: {
-			defaultClass: "local-path"
+			defaultClass: *"local-path" | string
 			classes: {
 				fast:       "local-path"
 				replicated: "longhorn"

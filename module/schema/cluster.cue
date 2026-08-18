@@ -10,8 +10,10 @@ import (
 // #Cluster is the ultra-minimal compute deployment target primitive.
 #Cluster: {
 	clusterName: string
+	// Lifecycle stage
 	environment: "production" | "staging" | "development" | string
 
+	// TODO: Deprecate top-level env in favor of platform.env
 	env?: [string]: string
 	values?: {
 		[string]: _
@@ -95,7 +97,7 @@ import (
 }
 
 // #ClusterConfig is the unified default cluster contract for backward compatibility.
-#ClusterConfig: #Cluster & #WithKube & #WithNetwork & #WithApps & #WithPolicies & #WithPlatform
+#ClusterConfig: #Cluster & #WithPlatform & #WithNetwork & #WithApps & #WithPolicies
 
 // #TopologyAlpha composes concrete named clusters and application deployment instances.
 #TopologyAlpha: {

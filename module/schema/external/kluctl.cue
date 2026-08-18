@@ -23,7 +23,7 @@ package external
 
 // Kluctl Variables block specification
 #KluctlVarsSpec: {
-	file?:   string
+	file?: string
 	values?: {
 		[string]: _
 	}

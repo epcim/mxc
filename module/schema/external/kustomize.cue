@@ -114,9 +114,8 @@ package external
 })
 
 #Kustomization: close({
-	overlays?: [..._]
+	overlays?: [...]
 	apiVersion?: string
-
 
 	// DEPRECATED. Bases are relative paths or git repository URLs specifying a
 	// directory containing a kustomization.yaml file.

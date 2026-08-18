@@ -35,22 +35,22 @@ export dest=TARGET_DEFAULT expr="mxc_vars" *args="":
 # Compile and display the fully projected variables of a single application directly to stdout
 [group('mxc')]
 show app:
-	@cd {{ root }}/{{ TARGET_DEFAULT }} && cue export -e "adapters.catalog.output.apps.\"{{ app }}\"" --out yaml 2>/dev/null || (printf "\033[31m❌ Error: Application '{{ app }}' is not defined inside target '{{ TARGET_DEFAULT }}'!\033[0m\n" >&2 && exit 1)
+	@cd {{ root }}/{{ TARGET_DEFAULT }} && cue export -e "adapters.catalog.apps.\"{{ app }}\"" --out yaml 2>/dev/null || (printf "\033[31m❌ Error: Application '{{ app }}' is not defined inside target '{{ TARGET_DEFAULT }}'!\033[0m\n" >&2 && exit 1)
 
 # Compile and display the flat services catalog of all active workloads directly to stdout
 [group('mxc')]
 show-catalog:
-	@cd {{ root }}/{{ TARGET_DEFAULT }} && cue export -e "adapters.catalog.output.services" --out yaml
+	@cd {{ root }}/{{ TARGET_DEFAULT }} && cue export -e "adapters.catalog.services" --out yaml
 
 # List all active services configured across the cluster
 [group('mxc')]
 list:
-	@cd {{ root }}/{{ TARGET_DEFAULT }} && cue export -e "adapters.catalog.output.services" --out yaml
+	@cd {{ root }}/{{ TARGET_DEFAULT }} && cue export -e "adapters.catalog.services" --out yaml
 
 # Display a simplified key-value mapping of all active services to their primary DNS/FQDN endpoints
 [group('mxc')]
 list-services:
-	@cd {{ root }}/{{ TARGET_DEFAULT }} && cue export -e "adapters.catalog.output.endpoints" --out yaml
+	@cd {{ root }}/{{ TARGET_DEFAULT }} && cue export -e "adapters.catalog.endpoints" --out yaml
 
 # Compile, export, and preview deployment differences on the cluster (allows extra kluctl args)
 [group('mxc-ops')]
@@ -71,6 +71,24 @@ build *args="":
 [group('mxc-ops')]
 sync:
     just _sync {{ TARGET_DEFAULT }}
+
+# Vendor/copy local mxc module into dependent packages (cluster-home-mxc, mxc-library)
+[group('mxc')]
+vendor-upstream-copy:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "▶ Syncing mxc module into dependent packages..."
+    mkdir -p {{ root }}/cluster-home-mxc/cue.mod/pkg/github.com/epcim/mxc
+    mkdir -p {{ root }}/mxc-library/cue.mod/pkg/github.com/epcim/mxc
+    rsync -a --delete --exclude='.git*' {{ _module_dir }}/ {{ root }}/cluster-home-mxc/cue.mod/pkg/github.com/epcim/mxc/
+    rsync -a --delete --exclude='.git*' {{ _module_dir }}/ {{ root }}/mxc-library/cue.mod/pkg/github.com/epcim/mxc/
+    echo "✓ Synced mxc module successfully."
+
+# Alias for vendor-upstream-copy
+[group('mxc')]
+vendor-sync: vendor-upstream-copy
+
+import 'mxc_migrate.just'
 
 # Internal helper implementations (prefixed with _ for clean encapsulation)
 _vet dest *args="":
@@ -245,7 +263,7 @@ test-alpha:
     (cd {{ root }}/mxc/test && cue eval ./topology_alpha.cue -e 'alphaMultiClusterFixture & {deploy: instances: extra: {app: _kafkaSpec, placement: clusters: ["gc01"]}}') >/dev/null
 
 [group('mxc')]
-test target *args="":
+test target=TARGET_DEFAULT *args="":
     #!/usr/bin/env fish
     set_color blue
     echo "▶ Starting MXC Validation & CI Test Suite..."
@@ -256,7 +274,10 @@ test target *args="":
     set_color blue
     echo "▶ [Step 1/3] Checking core CUE schema compilation..."
     set_color normal
-    if (cd {{ _module_dir }} && cue vet ./schema/...)
+    pushd {{ _module_dir }}
+    and cue vet ./schema/...
+    and popd
+    if test $status -eq 0
     	set_color green
     	echo "✓ Core CUE schemas compiled successfully."
     	set_color normal
@@ -273,7 +294,10 @@ test target *args="":
     set_color blue
     echo "▶ [Step 2/3] Validating Docker Compose configuration against cue.dev/x/ curated registry..."
     set_color normal
-    if (cd {{ root }}/mxc/test && cue vet -d '#ComposeConfig' ./validate_compose.cue ./docker-compose.test.yml)
+    pushd {{ root }}/mxc/test
+    and cue vet -d '#ComposeConfig' ./validate_compose.cue ./docker-compose.test.yml
+    and popd
+    if test $status -eq 0
     	set_color green
     	echo "✓ Docker Compose configuration is 100% valid."
     	set_color normal
@@ -289,7 +313,8 @@ test target *args="":
     set_color blue
     echo "▶ [Step 3/3] Testing parameters compilation & export (vars.yml)..."
     set_color normal
-    if just export > /dev/null
+    just _export {{ target }} > /dev/null
+    if test $status -eq 0
     	set_color green
     	echo "✓ Environment parameters exported successfully."
     	set_color normal

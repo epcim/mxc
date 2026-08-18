@@ -7,11 +7,11 @@ import (
 
 // #ImageSpec defines high-level container image coordinates and pull settings.
 #ImageSpec: {
-	repository:   string
-	tag?:          string | *"latest"
-	digest?:       string
-	pullPolicy?:   "Always" | "IfNotPresent" | "Never"
-	pullSecrets?:  [...string]
+	repository:  string
+	tag?:        string | *"latest"
+	digest?:     string
+	pullPolicy?: "Always" | "IfNotPresent" | "Never"
+	pullSecrets?: [...string]
 	...
 }
 
@@ -57,23 +57,23 @@ import (
 // Standard resource sizing presets
 #ResourcePresets: {
 	"nano": {
-		requests: { cpu: "100m", memory: "128Mi" }
-		limits:   { cpu: "200m", memory: "256Mi" }
+		requests: {cpu: "100m", memory: "128Mi"}
+		limits: {cpu: "200m", memory: "256Mi"}
 	}
 	"small": {
-		requests: { cpu: "250m", memory: "256Mi" }
-		limits:   { cpu: "500m", memory: "512Mi" }
+		requests: {cpu: "250m", memory: "256Mi"}
+		limits: {cpu: "500m", memory: "512Mi"}
 	}
 	"medium": {
-		requests: { cpu: "500m", memory: "512Mi" }
-		limits:   { cpu: "1", memory: "1Gi" }
+		requests: {cpu: "500m", memory: "512Mi"}
+		limits: {cpu: "1", memory: "1Gi"}
 	}
 	"large": {
-		requests: { cpu: "1", memory: "1Gi" }
-		limits:   { cpu: "2", memory: "2Gi" }
+		requests: {cpu: "1", memory: "1Gi"}
+		limits: {cpu: "2", memory: "2Gi"}
 	}
 	"xlarge": {
-		requests: { cpu: "2", memory: "2Gi" }
-		limits:   { cpu: "4", memory: "4Gi" }
+		requests: {cpu: "2", memory: "2Gi"}
+		limits: {cpu: "4", memory: "4Gi"}
 	}
 }

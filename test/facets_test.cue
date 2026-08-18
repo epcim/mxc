@@ -19,9 +19,9 @@ testContainerApp: schema.#AppMxc & {
 	appName: "web-portal"
 	adapter: "kluctl"
 	image: {
-		repository:  "nginx"
-		tag:         "1.27"
-		pullPolicy:  "Always"
+		repository: "nginx"
+		tag:        "1.27"
+		pullPolicy: "Always"
 		pullSecrets: ["regcred"]
 	}
 	ports: http: port: 80
@@ -40,19 +40,19 @@ testComposedCluster: schema.#Cluster &
 	schema.#WithKube &
 	schema.#WithNetwork &
 	schema.#WithApps & {
-	clusterName: "test-cluster"
-	environment: "staging"
-	kube: {
-		type: "talos"
-		storage: default: "longhorn"
-		ingress: class:   "traefik"
+		clusterName: "test-cluster"
+		environment: "staging"
+		kube: {
+			type: "talos"
+			storage: default: "longhorn"
+			ingress: class:   "traefik"
+		}
+		network: {
+			domain: "example.internal"
+			vips: k8s_api: address: "10.0.0.1"
+		}
+		apps: infra: web: testContainerApp
 	}
-	network: {
-		domain: "example.internal"
-		vips: k8s_api: address: "10.0.0.1"
-	}
-	apps: infra: web: testContainerApp
-}
 
 // Test 4: Custom Extension on #AppMxc with open tails
 testExtendedApp: schema.#AppMxc & {

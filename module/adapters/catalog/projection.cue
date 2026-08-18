@@ -8,15 +8,17 @@ import (
 // #AppAdapter defines the specific fields mapped for the catalog.
 #AppAdapter: S=schema.#BaseAppAdapter & {
 	output: {
-		appName:    S.spec.appName
+		appName: S.spec.appName
+		if S.spec.appDesc != _|_ {appDesc: S.spec.appDesc}
+		if S.spec.appFqdn != _|_ {appFqdn: S.spec.appFqdn}
 		deployment: S.spec.deployment
-		if S.spec.image != _|_ { image: S.spec.image }
+		if S.spec.image != _|_ {image: S.spec.image}
 
 		// Direct metadata delivery: these are the fields used by the catalog
-		if S.spec.tags != _|_ { tags: S.spec.tags }
-		if S.spec.k0rdent != _|_ { k0rdent: S.spec.k0rdent }
-		if S.spec.values != _|_ { values: S.spec.values }
-		if S.spec.kustomize != _|_ { kustomize_spec: S.spec.kustomize }
+		if S.spec.tags != _|_ {tags: S.spec.tags}
+		if S.spec.k0rdent != _|_ {k0rdent: S.spec.k0rdent}
+		if S.spec.values != _|_ {values: S.spec.values}
+		if S.spec.kustomize != _|_ {kustomize_spec: S.spec.kustomize}
 	}
 }
 
@@ -27,18 +29,32 @@ import (
 	services: [
 		for catKey, catApps in P.cluster.apps
 		for appKey, appSpec in catApps {
-			name:        appSpec.appName
-			category:    catKey
-			deployment:  appSpec.deployment
-			image:       [if appSpec.image != _|_ { appSpec.image }, null][0]
-			
-			// Auto-generate live URLs for any ingress-exposed ports
+			name:       appSpec.appName
+			category:   catKey
+			deployment: appSpec.deployment
+			if appSpec.appDesc != _|_ {description: appSpec.appDesc}
+			image: [if appSpec.image != _|_ {appSpec.image}, null][0]
+
+			let exposeVal = (appSpec & {expose: {}}).expose
+			let defaultDomain = [if P.cluster.network.domain != _|_ {P.cluster.network.domain}, ""][0]
+			let resolvedFqdn = [
+				if appSpec.appFqdn != _|_ {appSpec.appFqdn},
+				if exposeVal.http != _|_ && exposeVal.http.fqdn != _|_ {exposeVal.http.fqdn},
+				if defaultDomain != "" {appSpec.appName + "." + defaultDomain},
+				"",
+			][0]
+
+			// Auto-generate live URLs for any ingress-exposed ports or appFqdn
 			endpoints: [
-				for portKey, exposeSpec in appSpec.expose
-				if exposeSpec.target == "ingress" {
+				if resolvedFqdn != "" {
+					name: "http"
+					url:  "https://" + resolvedFqdn
+				},
+				for portKey, exposeSpec in exposeVal
+				if portKey != "http" && exposeSpec.target == "ingress" {
 					name: portKey
-					url:  "https://" + [if exposeSpec.fqdn != _|_ { exposeSpec.fqdn }, appSpec.appName + "." + P.cluster.network.domain][0]
-				}
+					url: "https://" + [if exposeSpec.fqdn != _|_ {exposeSpec.fqdn}, appSpec.appName + "." + defaultDomain][0]
+				},
 			]
 		}
 	]
@@ -47,14 +63,16 @@ import (
 	endpoints: {
 		for catKey, catApps in P.cluster.apps
 		for appKey, appSpec in catApps {
-			let ingressPorts = [
-				for portKey, exposeSpec in appSpec.expose
-				if exposeSpec.target == "ingress" {
-					[if exposeSpec.fqdn != _|_ { exposeSpec.fqdn }, appSpec.appName + "." + P.cluster.network.domain][0]
-				}
-			]
-			if len(ingressPorts) > 0 {
-				"\(appSpec.appName)": "https://" + ingressPorts[0]
+			let exposeVal = (appSpec & {expose: {}}).expose
+			let defaultDomain = [if P.cluster.network.domain != _|_ {P.cluster.network.domain}, ""][0]
+			let resolvedFqdn = [
+				if appSpec.appFqdn != _|_ {appSpec.appFqdn},
+				if exposeVal.http != _|_ && exposeVal.http.fqdn != _|_ {exposeVal.http.fqdn},
+				if defaultDomain != "" {appSpec.appName + "." + defaultDomain},
+				"",
+			][0]
+			if resolvedFqdn != "" {
+				"\(appSpec.appName)": "https://" + resolvedFqdn
 			}
 		}
 	}
@@ -63,7 +81,7 @@ import (
 	apps: {
 		for catKey, catApps in P.cluster.apps
 		for appKey, appSpec in catApps {
-			"\(appSpec.appName)": (#AppAdapter & { spec: appSpec, cluster: P.cluster }).output
+			"\(appSpec.appName)": (#AppAdapter & {spec: appSpec, cluster: P.cluster}).output
 		}
 	}
 }

@@ -9,9 +9,9 @@ cluster: apps: {
 	// Infrastructure namespace applications
 	infra: {
 		traefik: schema.#AppCore & {
-			appName: "traefik"
-			deployment: "kluctl"
-			contextSchema: "#app-template"  // Triggers app-template adapter behavior
+			appName:       "traefik"
+			deployment:    "kluctl"
+			contextSchema: "#app-template" // Triggers app-template adapter behavior
 			helmChart: {
 				repo:         "https://traefik.github.io/charts"
 				chartName:    "traefik"
@@ -20,7 +20,7 @@ cluster: apps: {
 				namespace:    "sys"
 			}
 			ports: {
-				web: port: 80
+				web: port:       80
 				websecure: port: 443
 			}
 			kustomize: {
@@ -32,8 +32,8 @@ cluster: apps: {
 	// Home category applications
 	home: {
 		homarr: schema.#AppCore & {
-			appName: "homarr"
-			deployment: "kluctl"
+			appName:       "homarr"
+			deployment:    "kluctl"
 			contextSchema: "#app-template"
 			helmChart: {
 				repo:         "https://bjw-s-labs.github.io/helm-charts"
@@ -64,8 +64,8 @@ cluster: apps: {
 	// Media category applications
 	media: {
 		silo: schema.#AppCore & {
-			appName: "silo"
-			deployment: "kluctl"
+			appName:       "silo"
+			deployment:    "kluctl"
 			contextSchema: "#app-template"
 			helmChart: {
 				repo:         "https://bjw-s-labs.github.io/helm-charts"

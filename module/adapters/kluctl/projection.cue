@@ -9,17 +9,17 @@ import (
 // #AppAdapter handles the 1:1 parameter delivery for a single application.
 // All complex validation resides inside the schema layer (validation.cue / apps.cue).
 #AppAdapter: S=schema.#BaseAppAdapter & {
-	let _isAppTemplate = len([for s in [if (S.spec.valuesSchema & string) != _|_ { [S.spec.valuesSchema] }, if (S.spec.valuesSchema & [...string]) != _|_ { S.spec.valuesSchema }, []][0] if s == "#app-template" {s}]) > 0
+	let _isAppTemplate = len([for s in [if (S.spec.valuesSchema & string) != _|_ {[S.spec.valuesSchema]}, if (S.spec.valuesSchema & [...string]) != _|_ {S.spec.valuesSchema}, []][0] if s == "#app-template" {s}]) > 0
 	let _hasPVC = (S.spec.storage != _|_ && !_isAppTemplate) || (S.spec.overlays != _|_ && S.spec.overlays.pvc != _|_) || (output.overlays != _|_ && output.overlays.pvc != _|_)
 
 	output: {
 		// Direct metadata delivery
-		if S.spec.tags != _|_ { tags: S.spec.tags }
-		if S.spec.k0rdent != _|_ { k0rdent: S.spec.k0rdent }
-		if S.spec.secrets != _|_ { secrets: S.spec.secrets }
-		if S.spec.values != _|_ { values: S.spec.values }
-		if S.spec.kustomize != _|_ { kustomize_spec: S.spec.kustomize }
-		if S.spec.overlays != _|_ { overlays: S.spec.overlays }
+		if S.spec.tags != _|_ {tags: S.spec.tags}
+		if S.spec.k0rdent != _|_ {k0rdent: S.spec.k0rdent}
+		if S.spec.secrets != _|_ {secrets: S.spec.secrets}
+		if S.spec.values != _|_ {values: S.spec.values}
+		if S.spec.kustomize != _|_ {kustomize_spec: S.spec.kustomize}
+		if S.spec.overlays != _|_ {overlays: S.spec.overlays}
 
 		// Pass-through or generate kustomize file-lists
 		if S.spec.kustomize != _|_ {
@@ -27,20 +27,20 @@ import (
 				for k, v in S.spec.kustomize if k != "resources" && k != "overlays" {
 					"\(k)": v
 				}
-				
+
 				let defaultResources = [
-					if S.spec.kustomize.resources != _|_ { S.spec.kustomize.resources },
-					["helm-rendered.yaml"]
+					if S.spec.kustomize.resources != _|_ {S.spec.kustomize.resources},
+					["helm-rendered.yaml"],
 				][0]
 
 				resources: list.Concat([
 					defaultResources,
 					[
-						if S.spec.kustomize.overlays != _|_ { "overlays/mxc-overlays.yaml" },
+						if S.spec.kustomize.overlays != _|_ {"overlays/mxc-overlays.yaml"},
 					],
 					[
-						if _hasPVC { "overlays/pvc.yaml" },
-					]
+						if _hasPVC {"overlays/pvc.yaml"},
+					],
 				])
 			}
 		}
@@ -71,9 +71,9 @@ import (
 	// Streamlined overlays and global PVC extraction
 	overlays: {
 		if P.cluster.networkPolicies != _|_ {
-			networkPolicies: [for v in P.cluster.networkPolicies { v }]
+			networkPolicies: [for v in P.cluster.networkPolicies {v}]
 		}
-		
+
 		// Flat, transparent collection of PVCs for the deployment runtime
 		pvc: [
 			for appKey, appOut in apps
