@@ -57,6 +57,9 @@ import (
 	// Target platform adaptation requirements and bindings
 	platform?: #Platform
 
+	// Dynamic kustomize context mappings matching full upstream schemas
+	kustomize?: external.#Kustomization
+
 	// Logical tags for stack/feature grouping and cascading
 	tags?: [...string]
 

@@ -6,6 +6,7 @@ root := clean(source_dir() + "/..")
 TARGET_DEFAULT := `echo "${TARGET:-cluster-home-mxc}" | sed -E 's/(-mxc)?$/-mxc/'`
 GHCR_USER := env_var_or_default("GHCR_USER", "epcim")
 _module_dir := root + "/mxc/module"
+_library_module_dir := root + "/mxc-library/module"
 _registry_config := "file:" + root + "/mxc/registry.cue"
 
 # Format all CUE files in repository / target
@@ -77,12 +78,15 @@ sync:
 vendor-upstream-copy:
     #!/usr/bin/env bash
     set -euo pipefail
-    echo "▶ Syncing mxc module into dependent packages..."
+    echo "▶ Syncing mxc and mxc-library modules into dependent packages..."
     mkdir -p {{ root }}/cluster-home-mxc/cue.mod/pkg/github.com/epcim/mxc
     mkdir -p {{ root }}/mxc-library/cue.mod/pkg/github.com/epcim/mxc
+    rm -rf {{ root }}/cluster-home-mxc/cue.mod/pkg/github.com/epcim/mxc-library
+    mkdir -p {{ root }}/cluster-home-mxc/cue.mod/pkg/github.com/epcim/mxc-library
     rsync -a --delete --exclude='.git*' {{ _module_dir }}/ {{ root }}/cluster-home-mxc/cue.mod/pkg/github.com/epcim/mxc/
     rsync -a --delete --exclude='.git*' {{ _module_dir }}/ {{ root }}/mxc-library/cue.mod/pkg/github.com/epcim/mxc/
-    echo "✓ Synced mxc module successfully."
+    rsync -a --delete --exclude='.git*' {{ _library_module_dir }}/ {{ root }}/cluster-home-mxc/cue.mod/pkg/github.com/epcim/mxc-library/
+    echo "✓ Synced mxc and mxc-library modules successfully."
 
 # Alias for vendor-upstream-copy
 [group('mxc')]

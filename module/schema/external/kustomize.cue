@@ -113,6 +113,16 @@ package external
 	pluginType?: string
 })
 
+#Labels: close({
+	pairs?: {
+		[string]: string
+	}
+	includeSelectors?: bool
+	includeTemplates?: bool
+	fields?: [...#FieldSpec]
+	...
+})
+
 #Kustomization: close({
 	overlays?: [...]
 	apiVersion?: string
