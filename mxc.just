@@ -1,8 +1,5 @@
-# set shell := ["bash", "-cu"]
-
-# FIXME, this is not needed shell is by default, but requested fish shell for longer tasks
-
 root := clean(source_dir() + "/..")
+BUILD_DIR := env('BUILD_DIR', root + "/.build")
 TARGET_DEFAULT := `echo "${TARGET:-cluster-home-mxc}" | sed -E 's/(-mxc)?$/-mxc/'`
 GHCR_USER := env_var_or_default("GHCR_USER", "epcim")
 _module_dir := root + "/mxc/module"
@@ -36,22 +33,22 @@ export dest=TARGET_DEFAULT expr="mxc_vars" *args="":
 # Compile and display the fully projected variables of a single application directly to stdout
 [group('mxc')]
 show app:
-	@cd {{ root }}/{{ TARGET_DEFAULT }} && cue export -e "adapters.catalog.apps.\"{{ app }}\"" --out yaml 2>/dev/null || (printf "\033[31m❌ Error: Application '{{ app }}' is not defined inside target '{{ TARGET_DEFAULT }}'!\033[0m\n" >&2 && exit 1)
+	@cue -C {{ TARGET_DEFAULT }} export -e "adapters.catalog.apps.\"{{ app }}\"" --out yaml 2>/dev/null || (printf "\033[31m❌ Error: Application '{{ app }}' is not defined inside target '{{ TARGET_DEFAULT }}'!\033[0m\n" >&2 && exit 1)
 
 # Compile and display the flat services catalog of all active workloads directly to stdout
 [group('mxc')]
 show-catalog:
-	@cd {{ root }}/{{ TARGET_DEFAULT }} && cue export -e "adapters.catalog.services" --out yaml
+	@cue -C {{ TARGET_DEFAULT }} export -e "adapters.catalog.services" --out yaml
 
 # List all active services configured across the cluster
 [group('mxc')]
 list:
-	@cd {{ root }}/{{ TARGET_DEFAULT }} && cue export -e "adapters.catalog.services" --out yaml
+	@cue -C {{ TARGET_DEFAULT }} export -e "adapters.catalog.services" --out yaml
 
 # Display a simplified key-value mapping of all active services to their primary DNS/FQDN endpoints
 [group('mxc')]
 list-services:
-	@cd {{ root }}/{{ TARGET_DEFAULT }} && cue export -e "adapters.catalog.endpoints" --out yaml
+	@cue -C {{ TARGET_DEFAULT }} export -e "adapters.catalog.endpoints" --out yaml
 
 # Compile, export, and preview deployment differences on the cluster (allows extra kluctl args)
 [group('mxc-ops')]
@@ -96,12 +93,12 @@ import 'mxc_migrate.just'
 
 # Internal helper implementations (prefixed with _ for clean encapsulation)
 _vet dest *args="":
-    (cd {{ root }}/{{ dest }} && cue vet ./... {{ args }})
+    cue -C {{ root }}/{{ dest }} vet ./... {{ args }}
 
 _export dest expr="mxc_vars" *args="":
     #!/usr/bin/env fish
     echo "▶ Compiling CUE variables for {{ dest }}..."
-    cd {{ root }}/{{ dest }}; and cue export -e '{{ expr }}' --out yaml > {{ root }}/{{ dest }}/vars-cue.yml.tmp
+    cue -C {{ root }}/{{ dest }} export -e '{{ expr }}' --out yaml > {{ root }}/{{ dest }}/vars-cue.yml.tmp
     if test "{{ dest }}" = "cluster-home-mxc"; and test -s "{{ root }}/cluster-home/vars.yml"
     	echo "▶ Merging with legacy cluster-home variables..."
     	yq ea 'select(fileIndex == 0) * select(fileIndex == 1)' {{ root }}/cluster-home/vars.yml {{ root }}/{{ dest }}/vars-cue.yml.tmp > {{ root }}/{{ dest }}/vars.yml
@@ -125,85 +122,134 @@ _build *args="":
     	end
     end
 
-    set -l build_dir "{{ root }}/.build"
+    set -l build_dir "{{ BUILD_DIR }}"
     if set -q BUILD_DIR
     	set build_dir $BUILD_DIR
     end
 
-    just -f {{ root }}/Justfile clean_build
+    just clean_build
     mkdir -p $build_dir
-    just _export $dest
-    echo "▶ Rendering offline manifests for $dest into $build_dir..."
-    echo "  \$ kluctl render -t $dest --offline-kubernetes --render-output-dir $build_dir $kluctl_args"
-    cd {{ root }} && kluctl render -t $dest --offline-kubernetes --render-output-dir $build_dir $kluctl_args
+    just mxc::_export $dest
+    kluctl render -t $dest --offline-kubernetes --render-output-dir $build_dir $kluctl_args
+
+# Export single application specification
+[group('mxc')]
+export-app app dest=TARGET_DEFAULT:
+    @mkdir -p {{ BUILD_DIR }}/{{ app }}
+    @cue -C {{ root }}/{{ dest }} export -e "adapters.catalog.apps.\"{{ app }}\"" --out yaml > {{ BUILD_DIR }}/{{ app }}/spec.yaml 2>/dev/null || true
+
+# Build kustomize manifests for an application
+[group('mxc')]
+build-kustomize app dest=TARGET_DEFAULT:
+    @rm -rf {{ BUILD_DIR }}/kustomize
+    @mkdir -p {{ BUILD_DIR }}/kustomize/{{ app }}
+    @cue -C {{ root }}/{{ dest }} export -e "adapters.kustomize.output.apps.\"{{ app }}\".kustomize" --out yaml > {{ BUILD_DIR }}/kustomize/{{ app }}/kustomization.yaml 2>/dev/null || true
+    @cue -C {{ root }}/{{ dest }} export -e "adapters.kustomize.output.apps.\"{{ app }}\".overlays" --out yaml > {{ BUILD_DIR }}/kustomize/{{ app }}/mxc-overlays.yaml 2>/dev/null || true
+
+# Build helm configuration and values for an application
+[group('mxc')]
+build-helm app dest=TARGET_DEFAULT:
+    @rm -rf {{ BUILD_DIR }}/helm
+    @mkdir -p {{ BUILD_DIR }}/helm/{{ app }}
+    @cue -C {{ root }}/{{ dest }} export -e "adapters.helm.output.apps.\"{{ app }}\"" --out yaml > {{ BUILD_DIR }}/helm/{{ app }}/app.yaml
+    @cue -C {{ root }}/{{ dest }} export -e "adapters.helm.output.apps.\"{{ app }}\".values" --out yaml > {{ BUILD_DIR }}/helm/{{ app }}/values.yaml 2>/dev/null || true
+
+_diff-kustomize dest app_tag: (build-kustomize app_tag dest)
+    kubectl diff -k {{ BUILD_DIR }}/kustomize/{{ app_tag }}
+
+_apply-kustomize dest app_tag *flags="": (build-kustomize app_tag dest)
+    kubectl apply -k {{ BUILD_DIR }}/kustomize/{{ app_tag }} {{ flags }}
+
+_apply-helm dest app_tag *flags="": (build-helm app_tag dest)
+    helm upgrade --install $(yq '.helmChart | [(.releaseName // "{{ app_tag }}"), (.repo + ("/" + .chartName // "")), "--version", .chartVersion, "--namespace", (.namespace // "default"), "--create-namespace"] | join(" ")' {{ BUILD_DIR }}/helm/{{ app_tag }}/app.yaml) $([ -s {{ BUILD_DIR }}/helm/{{ app_tag }}/values.yaml ] && echo "-f {{ BUILD_DIR }}/helm/{{ app_tag }}/values.yaml") {{ flags }}
 
 _diff *args="":
     #!/usr/bin/env fish
-    set -l dest "{{ TARGET_DEFAULT }}"
-    set -l kluctl_args
-
     set -l raw_args (string split -n ' ' -- "{{ args }}")
-    if test (count $raw_args) -gt 0
-    	if test -d "{{ root }}/$raw_args[1]"
-    		set dest $raw_args[1]
-    		set kluctl_args $raw_args[2..-1]
-    	else
-    		set kluctl_args $raw_args
-    	end
+    set -l dest "{{ TARGET_DEFAULT }}"
+    set -l opts
+    for arg in $raw_args
+        if test -d "{{ root }}/$arg"
+            set dest $arg
+        else
+            set -a opts $arg
+        end
     end
+    argparse -s --ignore-unknown 't/include-tag=+' 'exclude-tag=+' 'd/dest=' 'y/yes' 'dry-run' -- $opts 2>/dev/null
 
-    set -l build_dir "{{ root }}/.build"
+    set -l build_dir "{{ BUILD_DIR }}"
     if set -q BUILD_DIR
-    	set build_dir $BUILD_DIR
+        set build_dir $BUILD_DIR
     end
     trap "rm -rf $build_dir" EXIT
 
-    just -f {{ root }}/Justfile clean_build
+    just clean_build
     mkdir -p $build_dir
-    just _export $dest
 
-    # Filter out deploy-only/apply-only flags (like --prune, --force-apply) which are not supported by diff
+    # Dispatch standalone adapter apps directly from exported spec
+    for app in $_flag_t
+        just mxc::export-app $app $dest
+        for adp in (yq '.adapter | if type == "array" then .[] else . end' {{ BUILD_DIR }}/$app/spec.yaml 2>/dev/null)
+            test "$adp" = "kustomize"; and just mxc::_diff-kustomize $dest $app; and exit 0
+        end
+    end
+
+    just mxc::_export $dest
+
+    # Filter out deploy-only/apply-only flags which are not supported by diff
     set -l diff_args
-    for arg in $kluctl_args
+    for arg in $opts
         if not test "$arg" = "--prune" -o "$arg" = "--force-apply"
             set -a diff_args $arg
         end
     end
 
-    echo "▶ Running Kluctl Diff on $dest..."
-    echo "  \$ kluctl diff -t $dest --ignore-kluctl-metadata --replace-on-error --render-output-dir $build_dir $diff_args"
-    cd {{ root }} && kluctl diff -t $dest --ignore-kluctl-metadata --replace-on-error --render-output-dir $build_dir $diff_args
+    kluctl diff -t $dest --ignore-kluctl-metadata --replace-on-error --render-output-dir $build_dir $diff_args
 
 _apply *args="":
     #!/usr/bin/env fish
-    set -l dest "{{ TARGET_DEFAULT }}"
-    set -l kluctl_args
-
     set -l raw_args (string split -n ' ' -- "{{ args }}")
-    if test (count $raw_args) -gt 0
-    	if test -d "{{ root }}/$raw_args[1]"
-    		set dest $raw_args[1]
-    		set kluctl_args $raw_args[2..-1]
-    	else
-    		set kluctl_args $raw_args
-    	end
+    set -l dest "{{ TARGET_DEFAULT }}"
+    set -l opts
+    for arg in $raw_args
+        if test -d "{{ root }}/$arg"
+            set dest $arg
+        else
+            set -a opts $arg
+        end
     end
+    argparse -s --ignore-unknown 't/include-tag=+' 'exclude-tag=+' 'd/dest=' 'y/yes' 'dry-run' -- $opts 2>/dev/null
 
-    set -l build_dir "{{ root }}/.build"
+    set -l build_dir "{{ BUILD_DIR }}"
     if set -q BUILD_DIR
-    	set build_dir $BUILD_DIR
+        set build_dir $BUILD_DIR
     end
     trap "rm -rf $build_dir" EXIT
 
-    just -f {{ root }}/Justfile clean_build
+    just clean_build
     mkdir -p $build_dir
-    just _export $dest
+
+    # Dispatch standalone adapter apps directly from exported spec
+    set -l handled 0
+    for app in $_flag_t
+        just mxc::export-app $app $dest
+        for adp in (yq '.adapter | if type == "array" then .[] else . end' {{ BUILD_DIR }}/$app/spec.yaml 2>/dev/null)
+            if test "$adp" != "kluctl"
+                just mxc::_apply-$adp $dest $app (string join ' ' -- $opts)
+                set handled 1
+            end
+        end
+    end
+    test $handled -eq 1; and exit 0
+
+    just mxc::_export $dest
+
 
     # Separate diff-supported arguments and deployment-specific arguments
     set -l diff_args
     set -l deploy_args
     set -l has_non_interactive 0
-    for arg in $kluctl_args
+    for arg in $raw_args
         set -a deploy_args $arg
         if not test "$arg" = "--prune" -o "$arg" = "--force-apply"
             set -a diff_args $arg
@@ -214,22 +260,16 @@ _apply *args="":
     end
 
     if test $has_non_interactive -eq 1
-        echo "▶ Running Kluctl Deploy (non-interactive) on $dest..."
-        echo "  \$ kluctl deploy -t $dest --replace-on-error --render-output-dir $build_dir $deploy_args"
-        cd {{ root }} && kluctl deploy -t $dest --replace-on-error --render-output-dir $build_dir $deploy_args
+        kluctl deploy -t $dest --replace-on-error --render-output-dir $build_dir $deploy_args
     else
-        echo "▶ Calculating clean deployment diff for $dest..."
-        echo "  \$ kluctl diff -t $dest --ignore-kluctl-metadata --replace-on-error --render-output-dir $build_dir $diff_args"
-        cd {{ root }} && kluctl diff -t $dest --ignore-kluctl-metadata --replace-on-error --render-output-dir $build_dir $diff_args
+        kluctl diff -t $dest --ignore-kluctl-metadata --replace-on-error --render-output-dir $build_dir $diff_args
         
         set_color -o yellow
         read -P "❓ Do you want to apply/deploy these changes to $dest? (y/N) " -l confirm
         set_color normal
         
         if test "$confirm" = "y" -o "$confirm" = "Y"
-            echo "▶ Executing Kluctl Deploy..."
-            echo "  \$ kluctl deploy -t $dest --replace-on-error --render-output-dir $build_dir --yes $deploy_args"
-            cd {{ root }} && kluctl deploy -t $dest --replace-on-error --render-output-dir $build_dir --yes $deploy_args
+            kluctl deploy -t $dest --replace-on-error --render-output-dir $build_dir --yes $deploy_args
         else
             set_color red
             echo "❌ Deployment canceled."
@@ -334,16 +374,33 @@ test target=TARGET_DEFAULT *args="":
     echo "🎉 SUCCESS: All Model-X Configuration (MXC) validations passed perfectly!"
     set_color normal
 
-# Export custom CUE schemas to standard JSON Schema files for editor integration (YAML/JSON LS)
+# Synchronize custom CUE schemas to JSON Schema and harvest upstream application valuesSchema definitions
 [group('mxc')]
-schema-export:
+schema-sync target=TARGET_DEFAULT:
     #!/usr/bin/env bash
+    set -euo pipefail
     echo "▶ Exporting custom CUE schemas to JSON Schema..."
+    mkdir -p {{ root }}/mxc/docs/generated-schema/apps
     (cd {{ _module_dir }} && cue export ./schema -e '#WithNetwork' --out jsonschema) > {{ root }}/mxc/docs/generated-schema/vars-net.schema.json
     (cd {{ _module_dir }} && cue export ./schema -e '#WithKube' --out jsonschema) > {{ root }}/mxc/docs/generated-schema/vars-k8s.schema.json
     (cd {{ _module_dir }} && cue export ./schema -e '#Platform' --out jsonschema) > {{ root }}/mxc/docs/generated-schema/platform.schema.json
     (cd {{ _module_dir }} && cue export ./schema --out jsonschema -e '#ClusterConfig') > {{ root }}/mxc/docs/generated-schema/mxc-cluster.schema.json
-    echo "✓ Exported JSON schemas into mxc/docs/generated-schema/."
+    echo "✓ Exported core JSON schemas into mxc/docs/generated-schema/."
+
+    echo "▶ Harvesting application valuesSchema definitions for target {{ target }}..."
+    APPS_JSON=$(cd "{{ root }}/{{ target }}" && cue export -e "adapters.catalog.services" --out json 2>/dev/null || echo "[]")
+    echo "$APPS_JSON" | jq -r '.[] | select(.valuesSchema != null) | "\(.name) \(.valuesSchema)"' | while read -r name url; do
+        if [[ -n "$name" && -n "$url" ]]; then
+            echo "  ↓ Fetching schema for $name from $url..."
+            if [[ "$url" =~ ^https?:// ]]; then
+                curl -sSL "$url" -o "{{ root }}/mxc/docs/generated-schema/apps/${name}.schema.json" || echo "    ⚠️ Warning: Could not download $url"
+            elif [[ "$url" =~ ^file:// ]]; then
+                cp "${url#file://}" "{{ root }}/mxc/docs/generated-schema/apps/${name}.schema.json" 2>/dev/null || true
+            fi
+        fi
+    done
+    echo "✓ Completed harvesting values schemas."
+
 
 # Export adapter-oriented outputs once the corresponding CUE projections exist.
 [group('mxc')]

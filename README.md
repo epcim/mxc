@@ -8,6 +8,26 @@ MXC is a declarative, type-safe, and compile-time-validated platform configurati
 
 This repository is designed to be **fully self-contained and standalone-ready**, allowing basic cluster setups to be compiled, validated, and rendered completely without any external library dependencies.
 
+At its core, **MXC is just `cue export` of unified variable trees and configurations**. 
+
+Adapters simply transform this exported data into native input formats for whatever deployment or provisioning tool you choose: **Kluctl, Kustomize, K0rdent, Terraform / OpenTofu, Helm, or ArgoCD**.
+
+```text
+                      ┌────────────────────────────────────────┐
+                      │       just mxc::apply TARGET           │
+                      └──────────────────┬─────────────────────┘
+                                         │
+                         CUE evaluates adapter for tag
+                                         │
+             ┌───────────────────────────┼───────────────────────────┬───────────────────────────┐
+             ▼                           ▼                           ▼                           ▼
+     ┌───────────────┐           ┌───────────────┐           ┌───────────────┐           ┌───────────────┐
+     │    kluctl     │           │   kustomize   │           │    k0rdent    │           │   terraform   │
+     └───────┬───────┘           └───────┬───────┘           └───────┬───────┘           └───────┬───────┘
+             │                           │                           │                           │
+      kluctl deploy ...        kustomize build /           kcm apply /                 tofu / terraform
+                               kubectl apply -f            kubectl apply -f CR         apply ...
+```
 
 ---
 

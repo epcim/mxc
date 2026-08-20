@@ -19,8 +19,8 @@ import (
 	// Root FQDN identifier for the application instance (defaults to appName.<cluster.domain>)
 	appFqdn?: string
 
-	// Open rendering adapter selector (defaults to "kluctl")
-	adapter: *"kluctl" | string
+	// Open rendering adapter selector (single adapter or ordered list of adapters to execute)
+	adapter: *"kluctl" | string | [...string]
 
 	// Backward-compatibility alias for legacy 'deployment'
 	deployment?: string
@@ -69,7 +69,7 @@ import (
 // #AppMxc is the official container intent contract, unifying #App with
 // container lifecycle, networking, storage, secrets, and deployment escapes.
 #AppMxc: #App & {
-	adapter: *"kluctl" | string
+	adapter: *"kluctl" | string | [...string]
 
 	image?:   mxc.#ImageSpec
 	ports?:   mxc.#PortsSpec

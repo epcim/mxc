@@ -42,6 +42,10 @@
                     "type": "string",
                     "description": "Flavor / sizing tier selector"
                 },
+                "kustomize": {
+                    "description": "Dynamic kustomize context mappings matching full upstream schemas",
+                    "$ref": "#/$defs/Kustomization"
+                },
                 "platform": {
                     "description": "Target platform adaptation requirements and bindings",
                     "$ref": "#/$defs/Platform"
@@ -764,32 +768,66 @@
         },
         "Labels": {
             "type": "object",
-            "additionalProperties": false,
+            "additionalProperties": true,
             "properties": {
                 "fields": {
-                    "type": "array",
-                    "description": "FieldSpec completely specifies a kustomizable field in a k8s API object. It\nhelps define the operands of transformations",
-                    "items": {
-                        "$ref": "#/$defs/FieldSpec"
-                    }
+                    "allOf": [
+                        {
+                            "type": "array",
+                            "description": "FieldSpec completely specifies a kustomizable field in a k8s API object. It\nhelps define the operands of transformations",
+                            "items": {
+                                "$ref": "#/$defs/FieldSpec"
+                            }
+                        },
+                        {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/$defs/FieldSpec"
+                            }
+                        }
+                    ]
                 },
                 "includeSelectors": {
-                    "type": "boolean",
-                    "description": "IncludeSelectors indicates should transformer include the fieldSpecs for selectors"
+                    "allOf": [
+                        {
+                            "type": "boolean",
+                            "description": "IncludeSelectors indicates should transformer include the fieldSpecs for selectors"
+                        },
+                        {
+                            "type": "boolean"
+                        }
+                    ]
                 },
                 "includeTemplates": {
-                    "type": "boolean",
-                    "description": "IncludeTemplates indicates should transformer include the template labels"
+                    "allOf": [
+                        {
+                            "type": "boolean",
+                            "description": "IncludeTemplates indicates should transformer include the template labels"
+                        },
+                        {
+                            "type": "boolean"
+                        }
+                    ]
                 },
                 "pairs": {
-                    "type": "object",
-                    "description": "Pairs contains the key-value pairs for labels to add",
-                    "additionalProperties": true,
-                    "patternProperties": {
-                        ".*": {
-                            "type": "string"
+                    "allOf": [
+                        {
+                            "type": "object",
+                            "description": "Pairs contains the key-value pairs for labels to add",
+                            "additionalProperties": true,
+                            "patternProperties": {
+                                ".*": {
+                                    "type": "string"
+                                }
+                            }
+                        },
+                        {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
-                    }
+                    ]
                 }
             }
         },

@@ -76,8 +76,9 @@ package schema
 	}
 
 	output: {
-		appName:    spec.appName
-		deployment: spec.deployment
+		appName: spec.appName
+		adapter: spec.adapter
+		if spec.deployment != _|_ {deployment: spec.deployment}
 		// NOTE: Each adapter define what metadata is relevant for its own
 		// Direct metadata delivery
 		// if spec.tags != _|_ { tags: spec.tags }

@@ -59,7 +59,7 @@ import (
 	apps: {
 		for catKey, catApps in P.cluster.apps {
 			for appKey, appSpec in catApps
-			if list.Contains(_supported, appSpec.deployment) {
+			if list.Contains(_supported, appSpec.adapter) {
 				"\(appKey)": (#AppAdapter & {
 					"spec":    appSpec
 					"cluster": P.cluster
