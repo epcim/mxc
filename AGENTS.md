@@ -51,6 +51,13 @@ just mxc::show-catalog [TARGET]       # Exports the complete flat services catal
 just mxc::schema-export               # Generates JSON Schemas for IDE autocompletion
 ```
 
+#### Flexible Workload & Tag Targeting
+Lifecycle commands (`build`, `diff`, `run`, `apply`, `show`) support auto-detected app targeting:
+* `just mxc::diff cluster.apps.silo --dry-run` ➔ Auto-extracts tag `silo`
+* `just mxc::diff apps.silo --dry-run` ➔ Auto-extracts tag `silo`
+* `just mxc::diff silo --dry-run` ➔ Auto-extracts tag `silo`
+* `just mxc::diff -t silo --dry-run` ➔ Uses explicit tag flag `-t`
+
 ---
 
 ## 🎨 Core Vision: The Hybrid Schema Model

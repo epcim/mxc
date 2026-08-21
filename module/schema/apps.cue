@@ -17,7 +17,7 @@ import (
 	appDesc?: string
 
 	// Root FQDN identifier for the application instance (defaults to appName.<cluster.domain>)
-	appFqdn?: string
+	appFqdn: string | *"\(appName).svc.cluster.local"
 
 	// Open rendering adapter selector (single adapter or ordered list of adapters to execute)
 	adapter: *"kluctl" | string | [...string]

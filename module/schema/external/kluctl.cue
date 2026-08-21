@@ -9,7 +9,7 @@ package external
 	releaseName?:  string
 	namespace?:    string
 	skipCRDs?:     bool | *false
-	skipPrePull?:  bool | *false
+	skipPrePull?:  bool | *true
 }
 
 // Kluctl Deployment Item specification matching the upstream schema

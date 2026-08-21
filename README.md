@@ -181,6 +181,24 @@ just mxc::run -t silo --dry-run
 
 ---
 
+### 🎯 Flexible Workload & Tag Targeting
+
+All lifecycle commands (`build`, `diff`, `run`, `apply`, `show`) support flexible, auto-detected workload targeting syntax:
+
+* `just mxc::diff cluster.apps.silo --dry-run` ➔ Auto-extracts tag `silo` from CUE path
+* `just mxc::diff apps.silo --dry-run` ➔ Auto-extracts tag `silo`
+* `just mxc::diff silo --dry-run` ➔ Auto-extracts tag `silo` from positional argument
+* `just mxc::diff -t silo --dry-run` ➔ Uses explicit tag flag `-t`
+
+```bash
+# Examples across lifecycle stages:
+just mxc::build silo                  # Builds only the silo workload
+just mxc::diff cluster.apps.silo      # Diffs only the silo workload against cluster
+just mxc::run apps.silo --dry-run     # Dry-run deployment for silo
+```
+
+---
+
 ### Manifest Inspection & Cluster Catalog
 
 #### Inspect Rendered Manifests (`show`)
