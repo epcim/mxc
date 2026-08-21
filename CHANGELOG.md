@@ -4,6 +4,28 @@
 
 ### Added
 
+#### Decoupled 4-Stage Lifecycle Pipeline & Modular Adapter System (`mxc.just`)
+
+- **4-Stage Symmetrical Lifecycle Verbs**:
+  - `export`: Compiles CUE parameters into `vars.yml` (or outputs single application YAML / expressions to stdout with `-t <tag>` or `-e <expr>`).
+  - `build`: Renders manifests offline into `.build/`.
+  - `diff`: Previews differences between rendered manifests and the live cluster.
+  - `run`: Applies rendered manifests to the target cluster.
+  - Backward compatibility aliases: `deploy` and `apply` forward directly to `run`.
+- **Decoupled Modular Adapters**:
+  - `build-kluctl`, `build-kustomize`, `build-helm`
+  - `diff-kluctl`, `diff-kustomize`, `diff-helm`
+  - `run-kluctl`, `run-kustomize`, `run-helm`
+  - Engine-specific flag isolation: Kluctl argument parsing (`-t` translated to `--include-tag`, diff flag sanitization) isolated strictly inside `*-kluctl` adapter recipes.
+- **Global Just Environment & Variable Resolution**:
+  - `TARGET := env('MXC_TARGET', env('TARGET', 'cluster-home-mxc'))`
+  - `BUILD_DIR := env('BUILD_DIR', root + "/.build")`
+  - Recipes use `*args=""` so flag options starting with `-` (e.g. `-t hass`) are captured into `$raw_args` and parsed via `argparse` without binding errors.
+- **Just Shebang / Silence Rules Enforcement**:
+  - Shebang scripts (`#!/usr/bin/env fish`) hide command echoing by default. Defining them without `@` prefix prevents Just from echoing the script body.
+  - Non-shebang recipes use `@` prefix to suppress command line echoing.
+  - Child recipe calls inside `mxc.just` use `just -q mxc::<recipe>` to guarantee quiet manifest execution.
+
 #### Target Platform Adaptation & Multi-Plane Bindings (MXC-PROP-004)
 
 - **Target Platform Adaptation Schema (`#Platform` & `schema/platforms/`)**:
@@ -253,6 +275,68 @@ Cluster-centric inventory can be derived when required.
 2. **Vendor / Dependency Sync**:
    - Update vendir or CUE module dependency tracking `github.com/epcim/mxc` to include the `module/` layout.
    - Run `cue vet ./...` across `mxc-library` to ensure clean unification against `#App`.
+
+#### Adopting the Generic `mxc.just` in Downstream & Follow-Up Projects
+
+Follow-up repositories and downstream projects using MXC can integrate the standardized 4-stage lifecycle pipeline with the following steps:
+
+1. **Import `mxc.just` in Root Justfile**:
+   ```just
+   # In root Justfile
+   set shell := ["bash", "-cu"]
+   set export := true
+   set positional-arguments
+
+   # Import mxc task module
+   mod? mxc 'mxc/mxc.just'
+   ```
+
+2. **Configure Environment Defaults**:
+   - Set the default cluster target name via environment variable `MXC_TARGET` (or `TARGET`):
+     ```bash
+     export MXC_TARGET="cluster-prod-mxc"
+     ```
+   - Alternatively, pass explicit target flags to any command:
+     ```bash
+     just mxc::build -d cluster-prod-mxc -t app-name
+     ```
+
+3. **Standard 4-Stage Lifecycle Invocations**:
+   ```bash
+   # Stage 1: Export parameters (full vars.yml or single app YAML to stdout)
+   just mxc::export                        # Export full target parameters to vars.yml
+   just mxc::export -t vaultwarden         # Inspect single application specification
+   just mxc::export -e "adapters.catalog"  # Evaluate specific CUE expression
+
+   # Stage 2: Build offline manifests into .build/
+   just mxc::build                         # Render all manifests offline
+   just mxc::build -t vaultwarden          # Render manifests for single application
+
+   # Stage 3: Preview changes against live cluster
+   just mxc::diff -t vaultwarden --dry-run # Preview diff for application
+
+   # Stage 4: Run / apply manifests to cluster
+   just mxc::run -t vaultwarden --dry-run  # Dry-run deployment
+   just mxc::run -t vaultwarden            # Live deployment (with confirmation)
+   just mxc::run -t vaultwarden -y         # Non-interactive deployment
+   ```
+
+4. **Modular Adapter Dispatch & Custom Adapters**:
+   - Top-level verbs (`build`, `diff`, `run`) automatically inspect the application's `adapter` property in CUE (`kluctl`, `kustomize`, `helm`).
+   - For single-app builds with `adapter: "kustomize"`, dispatch routes to `build-kustomize`.
+   - For single-app builds with `adapter: "helm"`, dispatch routes to `build-helm`.
+   - For default multi-app runs, dispatch routes to `build-kluctl`.
+   - Downstream projects can invoke modular adapters directly:
+     ```bash
+     just mxc::build-kluctl cluster-prod-mxc -t vaultwarden
+     just mxc::diff-kluctl cluster-prod-mxc -t vaultwarden --dry-run
+     just mxc::run-kluctl cluster-prod-mxc -t vaultwarden --dry-run
+     ```
+
+5. **Authoring Rules for Downstream Just Recipes**:
+   - **Shebang Recipes** (Fish / Bash scripts): Do **not** prefix recipe names with `@`. Just hides shebang script commands by default; adding `@` forces Just to echo the script lines.
+   - **Non-Shebang Recipes** (Native Just commands): Prefix recipe names with `@` (e.g., `@deploy:`, `@build-kustomize:`) to suppress command echoing.
+   - **Child Invocations**: When calling sibling recipes from within Just, pass `-q` (`just -q mxc::<recipe>`) to ensure clean output.
 
 ### Compatibility
 

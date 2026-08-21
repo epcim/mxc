@@ -127,28 +127,80 @@ Ensure you have the following installed on your developer machine:
 
 ---
 
-## 🛠️ Usage Instructions
+## 🛠️ Usage Instructions & 4-Stage Lifecycle
 
-All commands are run using the platform-integrated `just` wrapper inside the `mxc/` context:
+All commands use the unified `just` task namespace:
 
-### 1. Validate the Configuration Schemas
-Runs compiler-level type-safety, Docker Compose alignments, and structural parameter checks:
-```bash
-just mxc::validate
+### 4-Stage Lifecycle Pipeline
+
+MXC structures deployments into 4 explicit stages:
+
+```
+┌─────────────┐       ┌─────────────┐       ┌─────────────┐       ┌─────────────┐
+│ 1. export   │  ──▶  │ 2. build    │  ──▶  │ 3. diff     │  ──▶  │ 4. run      │
+│ (vars.yml)  │       │ (manifests) │       │ (preview)   │       │ (execution) │
+└─────────────┘       └─────────────┘       └─────────────┘       └─────────────┘
 ```
 
-### 2. Export Compiled Variables (`vars.yml`)
-Compiles your high-level CUE application models and merges them with legacy cluster overrides into a flat, Kluctl-consumable `vars.yml` block:
+#### Stage 1: Export (`export`)
+Compiles high-level CUE application models and merges them with cluster overrides into a flat parameters file (`vars.yml`) or prints the evaluated CUE data to stdout:
 ```bash
-just mxc::export <cluster-directory-name>
-# Example:
+just mxc::export [TARGET] [-t TAG]
+# Examples:
 just mxc::export cluster-home-mxc
+just mxc::export cluster-home-mxc -t silo
 ```
 
-### 3. Generate Editor Autocompletion Schemas
-Compiles and generates standard physical JSON Schema files used to validate local YAML/YML files via the IDE's YAML Language Server:
+#### Stage 2: Build (`build`)
+Renders all Kubernetes manifests, Helm charts, and Kustomize overlays offline into the local `.build/` cache:
 ```bash
-just mxc::schema-export
+just mxc::build [TARGET] [-t TAG]
+# Examples:
+just mxc::build cluster-home-mxc
+just mxc::build -t silo
+```
+
+#### Stage 3: Diff (`diff`)
+Compares offline rendered `.build/` manifests against the live Kubernetes cluster state:
+```bash
+just mxc::diff [TARGET] [-t TAG] [--dry-run]
+# Examples:
+just mxc::diff -t silo
+just mxc::diff cluster-home-mxc --dry-run
+```
+
+#### Stage 4: Run (`run`) & Apply Alias (`apply`)
+Executes the rendered manifests against the live target cluster:
+```bash
+just mxc::run [TARGET] [-t TAG]
+# Legacy/alternative execution alias:
+just mxc::apply [TARGET] [-t TAG]
+# Dry-run execution:
+just mxc::run -t silo --dry-run
+```
+
+---
+
+### Manifest Inspection & Cluster Catalog
+
+#### Inspect Rendered Manifests (`show`)
+Inspects generated manifests in `.build/` with syntax highlighting (`bat` / `cat`):
+```bash
+just mxc::show [TARGET] [-t TAG]     # Present rendered manifests for target/tag
+just mxc::show -l                    # List all rendered manifest files in .build/
+```
+
+#### Service Discovery & Catalog
+```bash
+just mxc::list [TARGET]              # List active services in the cluster
+just mxc::list-services [TARGET]     # List service names and resolved DNS/FQDN endpoints
+just mxc::show-catalog [TARGET]      # Export complete flat service catalog to stdout
+```
+
+#### Schema Validation & IDE Schemas
+```bash
+just mxc::validate                   # Run type-safety and Docker Compose validations
+just mxc::schema-export              # Generate JSON Schema files for IDE autocompletion
 ```
 
 ---

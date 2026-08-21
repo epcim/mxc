@@ -27,14 +27,28 @@ mxc (as repo)
 Never run raw shell hacks. Always use the nested, parameterizable `just` task namespace:
 
 ```bash
-# 1. Validate all schemas & values against type constraints
-just mxc::validate
+# Validation:
+just mxc::validate                    # Validates all schemas & values against type constraints
 
-# 2. Compile and output flat parameters (vars.yml) to stdout for a specific cluster
-just mxc::export cluster-home-mxc
+# 4-Stage Lifecycle Pipeline:
+just mxc::export [TARGET] [-t TAG]    # Stage 1: Compiles model parameters into vars.yml (or stdout)
+just mxc::build [TARGET] [-t TAG]     # Stage 2: Renders manifests offline into .build/
+just mxc::diff [TARGET] [-t TAG]      # Stage 3: Previews manifest differences against cluster
+just mxc::run [TARGET] [-t TAG]       # Stage 4: Executes manifests against target cluster
 
-# 3. Generate Editor Autocompletion Schemas
-just mxc::schema-export
+# Execution Aliases:
+just mxc::apply [TARGET] [-t TAG]     # Alternative/legacy execution alias (calls `run`)
+just mxc::deploy [TARGET] [-t TAG]    # Convenience alias (calls `run`)
+
+# Inspection & Catalog:
+just mxc::show [TARGET] [-t TAG]      # Displays rendered manifests from .build/ (supports `bat` / `cat`)
+just mxc::show -l                     # Lists all rendered manifest files in .build/
+just mxc::list [TARGET]               # Lists active services in the cluster
+just mxc::list-services [TARGET]      # Lists service names and resolved DNS/FQDN endpoints
+just mxc::show-catalog [TARGET]       # Exports the complete flat services catalog to stdout
+
+# Editor Schema Export:
+just mxc::schema-export               # Generates JSON Schemas for IDE autocompletion
 ```
 
 ---
