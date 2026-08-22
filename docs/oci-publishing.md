@@ -9,6 +9,7 @@ below that directory:
 
 ```text
 module/cue.mod/module.cue
+module/mxc.just
 module/schema/**/*.cue
 module/adapters/**/*.cue
 module/adapters/**/*.yml

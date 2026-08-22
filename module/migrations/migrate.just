@@ -1,8 +1,12 @@
 # Model-X Configuration (MXC) Migration Framework
 # Numbered migration recipes correlated with OCI package schema versions
 
+root := env_var_or_default("GIT_ROOT", `git rev-parse --show-toplevel 2>/dev/null || pwd`)
+TARGET := env('MXC_TARGET', env('TARGET', '.'))
+
 # List all available MXC migrations and their target OCI version milestones
 [group('mxc-migration')]
+[no-cd]
 migrate-list:
     #!/usr/bin/env python3
     import json
@@ -24,7 +28,8 @@ migrate-list:
 
 # Execute all MXC migrations sequentially on target CUE directory or file
 [group('mxc-migration')]
-migrate target="cluster-home-mxc" *args="":
+[no-cd]
+migrate target=TARGET *args="":
     #!/usr/bin/env python3
     import sys
     import os
@@ -148,15 +153,18 @@ migrate target="cluster-home-mxc" *args="":
 
 # Run migration 0001: v0.1.0 expose.http.fqdn to appFqdn
 [group('mxc-migration')]
-migrate-0001 target="cluster-home-mxc" *args="":
-    just migrate {{ target }} --migration 0001 {{ args }}
+[no-cd]
+migrate-0001 target=TARGET *args="":
+    just -f {{ source_file() }} migrate {{ target }} --migration 0001 {{ args }}
 
 # Run migration 0002: v0.1.0 schema.#AppCore to schema.#App
 [group('mxc-migration')]
-migrate-0002 target="cluster-home-mxc" *args="":
-    just migrate {{ target }} --migration 0002 {{ args }}
+[no-cd]
+migrate-0002 target=TARGET *args="":
+    just -f {{ source_file() }} migrate {{ target }} --migration 0002 {{ args }}
 
 # Alias for backward compatibility
 [group('mxc-migration')]
-migrate-appfqdn target="cluster-home-mxc" *args="":
-    just migrate-0001 {{ target }} {{ args }}
+[no-cd]
+migrate-appfqdn target=TARGET *args="":
+    just -f {{ source_file() }} migrate-0001 {{ target }} {{ args }}

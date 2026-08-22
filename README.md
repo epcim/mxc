@@ -260,8 +260,25 @@ apps: hajimari: {
 }
 ```
 
-When you execute `just mxc::export cluster-home-mxc`, the compiler automatically parses this schema, projects the bjw-s app-template details, injects standard probes/timezones, and dumps a completely formatted `vars.yml` that Kluctl renders instantly!
+---
 
+## 🔄 Schema Migrations
+
+MXC provides a standalone migration runner for updating user CUE configurations between schema versions:
+
+```bash
+# List all available migration steps
+just -f module/migrations/migrate.just migrate-list
+
+# Preview migrations on a target directory (dry-run)
+just -f module/migrations/migrate.just migrate --dry-run [TARGET_PATH]
+
+# Apply all migrations to a target directory (or single .cue file)
+just -f module/migrations/migrate.just migrate [TARGET_PATH]
+
+# Apply a specific migration step
+just -f module/migrations/migrate.just migrate --migration 0001 [TARGET_PATH]
+```
 ---
 
 ## 🔒 Future-Proof OCI Portability
