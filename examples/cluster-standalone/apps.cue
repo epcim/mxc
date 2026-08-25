@@ -1,4 +1,4 @@
-// Schema: [apps.cue](../../module/schema/apps.cue#L4) -> schema.#AppCore
+// Schema: [apps.cue](../../module/schema/apps.cue#L4) -> schema.#AppMxc
 // cue-language-server: $schema=../../docs/generated-schema/mxc-cluster.schema.json
 // vim: set ts=2 sw=2 et :
 package mxc
@@ -8,9 +8,9 @@ import "github.com/epcim/mxc/schema:schema"
 cluster: apps: {
 	// Infrastructure namespace applications
 	infra: {
-		traefik: schema.#AppCore & {
+		traefik: schema.#AppMxc & {
 			appName:       "traefik"
-			deployment:    "kluctl"
+			adapter:       "kluctl"
 			contextSchema: "#app-template" // Triggers app-template adapter behavior
 			helmChart: {
 				repo:         "https://traefik.github.io/charts"
@@ -31,9 +31,9 @@ cluster: apps: {
 
 	// Home category applications
 	home: {
-		homarr: schema.#AppCore & {
+		homarr: schema.#AppMxc & {
 			appName:       "homarr"
-			deployment:    "kluctl"
+			adapter:       "kluctl"
 			contextSchema: "#app-template"
 			helmChart: {
 				repo:         "https://bjw-s-labs.github.io/helm-charts"
@@ -63,9 +63,9 @@ cluster: apps: {
 
 	// Media category applications
 	media: {
-		silo: schema.#AppCore & {
+		silo: schema.#AppMxc & {
 			appName:       "silo"
-			deployment:    "kluctl"
+			adapter:       "kluctl"
 			contextSchema: "#app-template"
 			helmChart: {
 				repo:         "https://bjw-s-labs.github.io/helm-charts"

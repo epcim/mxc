@@ -55,7 +55,7 @@ import (
 // #Projection projects a ClusterConfig into flat parameters for Kluctl.
 #Projection: P=schema.#BaseProjection & {
 	// Map workloads using our simplified, declarative #AppAdapter
-	let _supported = ["kluctl"]
+	let _supported = ["kluctl", "kustomize"]
 	apps: {
 		for catKey, catApps in P.cluster.apps {
 			for appKey, appSpec in catApps
@@ -68,30 +68,10 @@ import (
 		}
 	}
 
-	// Streamlined overlays and global PVC extraction
+	// Streamlined overlays (global cluster policies only)
 	overlays: {
-		if P.cluster.networkPolicies != _|_ {
-			networkPolicies: [for v in P.cluster.networkPolicies {v}]
-		}
-
-		// Flat, transparent collection of PVCs for the deployment runtime
-		pvc: [
-			for appKey, appOut in apps
-			if appOut.overlays != _|_ && appOut.overlays.pvc != _|_
-			for pvcItem in appOut.overlays.pvc {
-				pvcItem
-			}
-		]
-
-		// Pass-through other non-PVC overlays
-		for catKey, catApps in P.cluster.apps {
-			for appKey, appSpec in catApps {
-				if appSpec.overlays != _|_ {
-					for k, v in appSpec.overlays if k != "pvc" {
-						"\(k)": v
-					}
-				}
-			}
+		if P.cluster.platform != _|_ && P.cluster.platform.k8s != _|_ && P.cluster.platform.k8s.networkPolicies != _|_ {
+			networkPolicies: [for v in P.cluster.platform.k8s.networkPolicies {v}]
 		}
 	}
 

@@ -5,35 +5,24 @@ import (
 	"github.com/epcim/mxc/schema/platforms"
 )
 
-// #PlatformMxc is the default MXC-opinionated platform profile.
+// #PlatformMxc is the default MXC-opinionated platform profile with typed domain execution facets.
 #PlatformMxc: {
-	env: {
-		TZ:       *"UTC" | string
-		[string]: string
-	}
-	k8s: platforms.#PlatformK8s & {
-		distribution: *"talos" | string
-		storage: {
-			defaultClass: *"local-path" | string
-		}
-		ingress: {
-			provider: *"traefik" | string
-			class:    *"traefik" | string
-		}
-	}
-	...
-}
+	// Standard platform execution domains (optional and typed if used)
+	k8s?:     platforms.#PlatformK8s
+	compose?: platforms.#PlatformCompose
+	aws?:     platforms.#PlatformAWS
+	k0rdent?: platforms.#PlatformK0rdent
 
-// #PlatformSimple provides a minimal, single-node K8s reference profile.
-#PlatformSimple: {
-	env: {
-		TZ:       *"UTC" | string
-		[string]: string
+	// Generic multi-cloud or cross-domain IaC tool engine escape hatch
+	terraform?: {
+		backend?: string
+		providers?: [...string]
+		[string]: _
 	}
-	k8s: platforms.#PlatformK8s & {
-		distribution: "k8s"
-		storage: defaultClass: "standard"
-		ingress: class:        "nginx"
+
+	env?: {
+		TZ?:      *"UTC" | string
+		[string]: string
 	}
 	...
 }
@@ -62,6 +51,7 @@ import (
 				"traefik.ingress.kubernetes.io/router.tls":         "true"
 			}
 		}
+		...
 	}
 	...
 }

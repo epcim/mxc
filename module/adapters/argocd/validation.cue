@@ -2,6 +2,7 @@
 package argocd
 
 import (
+	"list"
 	"github.com/epcim/mxc/schema"
 )
 
@@ -11,7 +12,12 @@ import (
 	// Optional ArgoCD workload constraints
 	for catKey, catApps in P.cluster.apps {
 		for appKey, appSpec in catApps {
-			if appSpec.deployment == "argocd" {
+			let _adapterList = [
+				if (appSpec.adapter & string) != _|_ {[appSpec.adapter]},
+				if (appSpec.adapter & [...string]) != _|_ {appSpec.adapter},
+				[],
+			][0]
+			if list.Contains(_adapterList, "argocd") {
 				// Assert namespace is set if kustomize block is defined
 				if appSpec.kustomize != _|_ {
 					cluster: apps: "\(catKey)": "\(appKey)": kustomize: namespace: !=""

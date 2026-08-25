@@ -1,6 +1,56 @@
 # Changelog
 
-## [Unreleased]
+## [0.1.7] - 2026-08-25
+
+### Added
+
+- **Unified Topology & Location Hierarchy (`schema/topology.cue`)**:
+  - Defined `#Topology` root document (`apiVersion: *"topology.mxc.cue/v1alpha1"`, `kind: *"Topology"`).
+  - Defined recursive `#Location` schema (`location?: [string]: #Location`, `cluster?: [string]: #ClusterMxc`).
+  - Standardized parameter cascading (`platform`, `values`, `context`) across `#Topology`, `#Location`, `#Cluster`, and `#App`.
+  - Comprehensive multi-location and edge topology tests in `mxc/test/topology.cue`.
+- **Universal Container Adapter (`adapters/helm/app-template`)**:
+  - Supports base `#App` and containerized `#AppMxc` workloads seamlessly via single-block `isAppMxcSchema` inspection.
+  - Safely projects `controllers`, `services`, and `ingresses` when container specifications (`image`, `ports`, `expose`) are present; emits clean value/context overrides when absent.
+
+### Removed / Cleaned Up
+
+- Embed `platform?: #Platform` directly in `#Cluster` (symmetrical with `#App.platform` and `#Location.platform`).
+- Removed `#WithPlatform` facet from `schema/cluster.cue`.
+- Removed legacy `#ClusterConfig` backward-compatibility alias. Consumers must use canonical `schema.#ClusterMxc`.
+- Removed provisional `schema/alpha/` (`#TopologyAlpha`, `#DeployAlpha`).
+- Removed unused `#WithNetwork` and `#WithKube` references from base `#Cluster`.
+
+---
+
+
+### Added
+
+- **Pristine Schema Primitives & Sub-Package Modularization**:
+  - Pristine `#Platform` primitive in [`schema/platform.cue`](module/schema/platform.cue) stripped of domain engines. Only defines runtime `env?: [string]: string` and open seams (`...`).
+  - Pristine `#App` primitive in [`schema/apps.cue`](module/schema/apps.cue) with optional `appFqdn?: string` (omitted by default for non-exposed workloads) and zero Kubernetes `kustomize` escapes.
+  - Composable workload facet [`#AppSpec`](module/schema/mxc/workload.cue) in `schema/mxc/workload.cue` holding container facets (`image`, `ports`, `expose`, `storage`, `secrets`, `k0rdent`, `kustomize`, `helmChart`, `overlays`). Composed cleanly via `#AppMxc: #App & mxc.#AppSpec`.
+  - Composable platform profiles ([`#PlatformMxc`](module/schema/mxc/platform.cue), `#PlatformMxcLab`, `#PlatformSimple`) in `schema/mxc/platform.cue`.
+  - Isolated Kubernetes network policies under `platform.k8s.networkPolicies` in [`schema/platforms/k8s.cue`](module/schema/platforms/k8s.cue).
+  - `#ClusterMxc` composed purely from `#Cluster & #WithPlatform & #WithNetwork & #WithApps`.
+- **Standardized `adapter` Field & Multi-Adapter Chaining**:
+  - Canonical `adapter: *"kluctl" | string | [...string]` selector with multi-adapter chaining support (e.g., `adapter: ["helm", "kustomize"]`).
+  - Documented custom projection topology patterns in [`README.md`](README.md).
+- **Automated Migration Suite (`module/migrations/migrate.just`)**:
+  - `migrate-0003`: Automated migration from legacy `deployment:` field to canonical `adapter:`.
+  - `migrate-0004`: Automated migration from top-level `cluster.networkPolicies` to `cluster.platform.k8s.networkPolicies`.
+
+### Removed
+
+- Removed legacy `#AppSimple` and `#AppCore` backward-compatibility aliases from `schema/apps.cue`. Consumers must migrate using `just mxc::migrate-0002`.
+- Removed legacy `deployment` backward-compatibility alias from `schema/apps.cue`. Consumers must migrate using `just mxc::migrate-0003`.
+- Removed `#WithPolicies` and `#WithK8sNetworkPolicies` facets from pristine `schema/cluster.cue`. Consumers must migrate using `just mxc::migrate-0004`.
+- Relocated inline network schemas (`#WithNetwork`, `#vlan`, `#vip`, `#lb_pool`) and `#WithKube` to `schema/mxc/cluster.cue`.
+- Relocated upstream schema sources catalog to `schema/external/index.cue`.
+
+---
+
+## [0.1.5] - 2026-08-24
 
 ### Added
 

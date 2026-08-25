@@ -17,28 +17,32 @@ import (
 
 // App-template storage projection (volumes & persistence definitions)
 #Storage: {
-	appSpec: schema.#AppCore
+	appSpec: schema.#AppMxc
 
 	volumes: {
-		for k, v in appSpec.storage {
-			let isEnabled = [if v.enabled != _|_ {v.enabled}, true][0]
-			if isEnabled {
-				"\(k)": {
-					enabled: true
-					type:    "persistentVolumeClaim"
+		if appSpec.storage != _|_ {
+			for k, v in appSpec.storage {
+				let isEnabled = [if v.enabled != _|_ {v.enabled}, true][0]
+				if isEnabled {
+					"\(k)": {
+						enabled: true
+						type:    "persistentVolumeClaim"
+					}
 				}
 			}
 		}
 	}
 
 	persistence: {
-		for k, v in appSpec.storage {
-			let isEnabled = [if v.enabled != _|_ {v.enabled}, true][0]
-			if isEnabled {
-				"\(k)": {
-					enabled:       true
-					type:          "persistentVolumeClaim"
-					existingClaim: "\(appSpec.appName)-\(k)"
+		if appSpec.storage != _|_ {
+			for k, v in appSpec.storage {
+				let isEnabled = [if v.enabled != _|_ {v.enabled}, true][0]
+				if isEnabled {
+					"\(k)": {
+						enabled:       true
+						type:          "persistentVolumeClaim"
+						existingClaim: "\(appSpec.appName)-\(k)"
+					}
 				}
 			}
 		}
@@ -47,15 +51,13 @@ import (
 
 // Kluctl adapter extension to populate app-template deployment schemas
 #KluctlExtension: {
-	spec:    schema.#AppCore
-	cluster: schema.#ClusterConfig
+	spec:    schema.#AppMxc
+	cluster: schema.#Cluster
 
 	output: {
 		helmChart: #DefaultChart & {
 			releaseName: spec.appName
-			if spec.kustomize != _|_ {
-				namespace: spec.kustomize.namespace
-			}
+			namespace:   *spec.appName | string
 		}
 		if spec.helmChart != _|_ {
 			helmChart: spec.helmChart

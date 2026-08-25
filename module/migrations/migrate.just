@@ -23,6 +23,18 @@ migrate-list:
             "name": "appcore_to_app",
             "desc": "Migrate legacy schema.#AppCore to canonical schema.#App",
         },
+        {
+            "id": "0003",
+            "oci_version": "v0.1.6",
+            "name": "deployment_to_adapter",
+            "desc": "Migrate legacy deployment selector to canonical adapter field",
+        },
+        {
+            "id": "0004",
+            "oci_version": "v0.1.6",
+            "name": "networkpolicies_to_platform_k8s",
+            "desc": "Migrate top-level cluster.networkPolicies to platform.k8s.networkPolicies",
+        },
     ]
     print(json.dumps(migrations, indent=2))
 
@@ -69,6 +81,33 @@ migrate target=TARGET *args="":
         content = pattern.sub(repl, content)
         return content, changes
 
+    def migration_0003_deployment_to_adapter(content: str) -> tuple[str, int]:
+        changes = 0
+        pattern = re.compile(r'^(\s*)deployment(\??:)', re.MULTILINE)
+        def repl(match):
+            nonlocal changes
+            changes += 1
+            return f"{match.group(1)}adapter{match.group(2)}"
+        content = pattern.sub(repl, content)
+        return content, changes
+
+    def migration_0004_networkpolicies_to_platform_k8s(content: str) -> tuple[str, int]:
+        changes = 0
+        pattern_facet = re.compile(r'^\s*schema\.#(WithPolicies|WithK8sNetworkPolicies)\s*&\s*\n', re.MULTILINE)
+        def repl_facet(match):
+            nonlocal changes
+            changes += 1
+            return ""
+        content = pattern_facet.sub(repl_facet, content)
+
+        pattern_top = re.compile(r'^(\s*)cluster:\s*networkPolicies:\s*(.+)$', re.MULTILINE)
+        def repl_top(match):
+            nonlocal changes
+            changes += 1
+            return f"{match.group(1)}cluster: platform: k8s: networkPolicies: {match.group(2)}"
+        content = pattern_top.sub(repl_top, content)
+        return content, changes
+
     MIGRATIONS = [
         {
             "id": "0001",
@@ -81,6 +120,18 @@ migrate target=TARGET *args="":
             "oci_version": "v0.1.0",
             "name": "appcore_to_app",
             "apply": migration_0002_appcore_to_app,
+        },
+        {
+            "id": "0003",
+            "oci_version": "v0.1.6",
+            "name": "deployment_to_adapter",
+            "apply": migration_0003_deployment_to_adapter,
+        },
+        {
+            "id": "0004",
+            "oci_version": "v0.1.6",
+            "name": "networkpolicies_to_platform_k8s",
+            "apply": migration_0004_networkpolicies_to_platform_k8s,
         },
     ]
 
@@ -162,6 +213,18 @@ migrate-0001 target=TARGET *args="":
 [no-cd]
 migrate-0002 target=TARGET *args="":
     just -f {{ source_file() }} migrate {{ target }} --migration 0002 {{ args }}
+
+# Run migration 0003: v0.1.6 legacy deployment field to adapter
+[group('mxc-migration')]
+[no-cd]
+migrate-0003 target=TARGET *args="":
+    just -f {{ source_file() }} migrate {{ target }} --migration 0003 {{ args }}
+
+# Run migration 0004: v0.1.6 cluster.networkPolicies to platform.k8s.networkPolicies
+[group('mxc-migration')]
+[no-cd]
+migrate-0004 target=TARGET *args="":
+    just -f {{ source_file() }} migrate {{ target }} --migration 0004 {{ args }}
 
 # Alias for backward compatibility
 [group('mxc-migration')]

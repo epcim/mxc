@@ -122,6 +122,55 @@ This ensures zero compilation or parameter-rendering disruption across target pl
 
 ---
 
+## 📜 Changelog & Migration Playbook (Adapting to Schema Changes)
+
+When upgrading older cluster configurations, library stacks, or adapter projections, follow this agent migration playbook:
+
+### 1. Workload Declarations (`apps.cue`): `#AppCore` ➔ `#AppMxc`
+* **Change**: `#AppCore` is superseded by `#AppMxc` (unification of pristine `#App` with container intent facets `mxc.#AppSpec`).
+* **Migration**:
+  ```cue
+  // Before:
+  my_app: schema.#AppCore & { ... }
+  // After:
+  my_app: schema.#AppMxc & { ... }
+  ```
+
+### 2. Cluster Descriptors (`globals.cue` / `vars-env.cue`): `#ClusterConfig` / `#Cluster & #WithPlatform` ➔ `#ClusterMxc`
+* **Change**: Cluster definitions use `#ClusterMxc` (`#Cluster & mxc.#WithNetwork & #WithApps`). Platform profiles (`#PlatformMxc` or `#PlatformMxcLab`) are placed directly under `cluster.platform`.
+* **Migration**:
+  ```cue
+  // Before:
+  C=cluster: schema.#Cluster & schema.#WithPlatform & {
+      platform: schema.#PlatformMxcLab & { ... }
+  }
+  // After:
+  C=cluster: schema.#ClusterMxc & {
+      platform: schema.#PlatformMxcLab & { ... }
+  }
+  ```
+
+### 3. Storage Adapters (`fixtures.cue`): `#Storage.appSpec` ➔ `schema.#AppMxc`
+* **Change**: Pristine `#App` is agnostic and does not declare container storage. Adapters evaluating storage volumes must type their input as `schema.#AppMxc` (or `mxc.#AppSpec`).
+* **Migration**:
+  ```cue
+  // In adapter fixtures.cue:
+  #Storage: {
+      appSpec: schema.#AppMxc
+      ...
+  }
+  ```
+
+### 4. Fleet Management: Standalone (`#ClusterMxc`) vs. Hierarchical Topology (`#Topology`)
+* **Change**: Multi-cluster, multi-region cloud (AWS/GCP), and edge sites use `schema.#Topology` and recursive `schema.#Location` blocks (see `docs/topology.md` and `examples/topology-multicloud/`).
+* **Migration**: Standalone clusters remain direct `#ClusterMxc` without dummy topology wrappers; fleet setups wrap locations under `topology: schema.#Topology & { ... }`.
+
+### 5. Automated Agent Migration Skill
+For automated agent-driven upgrades across repositories, refer to the local migration skill at:
+* [`.agents/skills/mxc-migration/SKILL.md`](.agents/skills/mxc-migration/SKILL.md)
+
+---
+
 ## 🛠️ Verification Checklist (Before Ending Your Turn)
 
 1. **Verify Compilation:** Ensure `just mxc::validate` and `just mxc::export` run in milliseconds with zero warnings and exit with **code 0**.

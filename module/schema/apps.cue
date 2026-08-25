@@ -2,38 +2,38 @@
 package schema
 
 import (
-	"github.com/epcim/mxc/schema/external"
 	"github.com/epcim/mxc/schema/mxc"
 )
 
 #SchemaRef: string | [...string]
 
-// #App is the ultra-minimal universal specification for an application workload.
-// It defines core identity, rendering adapter selection, and parameters.
+// #App is the foundational workload declaration primitive.
+// It captures core identity and parameters without container-specific assumptions:
+// - appName / appDesc: Core human and machine identity
+// - appFqdn: Optional routable DNS identifier (omitted for background/worker workloads)
+// - adapter: Declarative deployment/rendering engine selector
+// - values / context: Symmetric data payload for teams (supports both naming preferences)
+// - flavor: Sizing / resource scaling overrides
+// - platform: Target platform runtime constraints and capabilities
+// - tags: Selection tags for build, diff, and deployment stages
 #App: {
 	appName: string
 
 	// Optional human-readable description for catalog and inventory
 	appDesc?: string
 
-	// Root FQDN identifier for the application instance (defaults to appName.<cluster.domain>)
-	appFqdn: string | *"\(appName).svc.cluster.local"
+	// Root FQDN identifier for the application instance (defaults to appName.<cluster.domain> if exposed)
+	appFqdn?: string
 
 	// Open rendering adapter selector (single adapter or ordered list of adapters to execute)
 	adapter: *"kluctl" | string | [...string]
-
-	// Backward-compatibility alias for legacy 'deployment'
-	deployment?: string
-	if deployment != _|_ {
-		adapter: deployment
-	}
 
 	// Primary type-safe configuration values surface
 	values?: {
 		[string]: _
 	}
 
-	// Extensible helm-values context block (retained for backward compatibility)
+	// Extensible helm-values context block (symmetric alias to values for team flexibility)
 	context?: {
 		[string]: _
 	}
@@ -57,9 +57,6 @@ import (
 	// Target platform adaptation requirements and bindings
 	platform?: #Platform
 
-	// Dynamic kustomize context mappings matching full upstream schemas
-	kustomize?: external.#Kustomization
-
 	// Logical tags for stack/feature grouping and cascading
 	tags?: [...string]
 
@@ -68,52 +65,8 @@ import (
 
 // #AppMxc is the official container intent contract, unifying #App with
 // container lifecycle, networking, storage, secrets, and deployment escapes.
-#AppMxc: #App & {
-	adapter: *"kluctl" | string | [...string]
-
-	image?:   mxc.#ImageSpec
-	ports?:   mxc.#PortsSpec
-	expose?:  mxc.#ExposeSpec
-	storage?: mxc.#StorageSpec
-	secrets?: mxc.#SecretsSpec
-
-	// Dynamic kustomize context mappings matching full upstream schemas (auto-bridged to platform.k8s.kustomize)
-	kustomize?: external.#Kustomization
-
-	// Escape hatch for Mirantis K0rdent service configurations (auto-bridged to platform.k0rdent)
-	k0rdent?: {
-		serviceSpec?: {
-			[string]: _
-		}
-		template?: string
-		values?: {
-			[string]: _
-		}
-	}
-
-	// Automatic bridging to canonical platform scopes
-	if kustomize != _|_ {
-		platform: k8s: kustomize: kustomize
-	}
-	if k0rdent != _|_ {
-		platform: k0rdent: k0rdent
-	}
-
-	// Application-specific templates or custom overlays configuration
-	overlays?: {
-		[string]: _
-	}
-
-	// Extensible helm chart properties for native helm deployments
-	helmChart?: external.#HelmChartSpec
-
-	...
-}
+#AppMxc: #App & mxc.#AppContainer
 
 // Re-export resource specifications from mxc facet
 #ResourcesSpec:   mxc.#ResourcesSpec
 #ResourcePresets: mxc.#ResourcePresets
-
-// Backward compatibility aliases
-#AppSimple: #AppMxc
-#AppCore:   #AppMxc

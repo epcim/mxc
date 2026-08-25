@@ -14,3 +14,6 @@ import (
 
 #PortSpec:   external.#PortSpec
 #VolumeSpec: external.#VolumeSpec
+
+#SchemaSource: external.#SchemaSource
+#CRDSource:    external.#CRDSource

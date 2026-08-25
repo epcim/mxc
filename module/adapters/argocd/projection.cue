@@ -24,7 +24,12 @@ import (
 	services: [
 		for catKey, catApps in P.cluster.apps
 		for appKey, appSpec in catApps
-		if list.Contains(_supported, appSpec.deployment) {
+		let _adapterList = [
+			if (appSpec.adapter & string) != _|_ {[appSpec.adapter]},
+			if (appSpec.adapter & [...string]) != _|_ {appSpec.adapter},
+			[],
+		][0]
+		if len([for a in _adapterList if list.Contains(_supported, a) {a}]) > 0 {
 			svc: appSpec.appName
 			chart: [if appSpec.helmChart != _|_ && appSpec.helmChart.chartName != _|_ {appSpec.helmChart.chartName}, "app-template"][0]
 			chartVersion: [if appSpec.helmChart != _|_ && appSpec.helmChart.chartVersion != _|_ {appSpec.helmChart.chartVersion}, "4.6.2"][0]
@@ -35,7 +40,12 @@ import (
 	overrides: {
 		for catKey, catApps in P.cluster.apps
 		for appKey, appSpec in catApps
-		if list.Contains(_supported, appSpec.deployment) {
+		let _adapterList = [
+			if (appSpec.adapter & string) != _|_ {[appSpec.adapter]},
+			if (appSpec.adapter & [...string]) != _|_ {appSpec.adapter},
+			[],
+		][0]
+		if len([for a in _adapterList if list.Contains(_supported, a) {a}]) > 0 {
 			"\(appSpec.appName)": (#AppAdapter & {spec: appSpec, cluster: P.cluster}).output
 		}
 	}

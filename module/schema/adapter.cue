@@ -40,7 +40,7 @@ package schema
 
 // BaseAppAdapter defines the standard 1:1 adapter interface for a single workload.
 #BaseAppAdapter: {
-	spec:    #AppCore
+	spec:    #AppMxc
 	cluster: #Cluster
 	// Simple projections inherit appName. Deployment-aware adapters set name
 	// from the DeployAlpha key; instanceName remains an override point.
@@ -78,7 +78,6 @@ package schema
 	output: {
 		appName: spec.appName
 		adapter: spec.adapter
-		if spec.deployment != _|_ {deployment: spec.deployment}
 		// NOTE: Each adapter define what metadata is relevant for its own
 		// Direct metadata delivery
 		// if spec.tags != _|_ { tags: spec.tags }

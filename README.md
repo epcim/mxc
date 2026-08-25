@@ -83,6 +83,11 @@ Standard configurations compile, validate, and render using **only the files ins
 For production-grade, multi-cluster organizations, the optional `mxc-library` repository standardizes core system planes (Monitoring, DBs, Auth, and Storage stacks). 
 * To prevent maintenance hazards and keep the codebase DRY, library adapters use **CUE module-level pass-through aliases** that dynamically import and inherit schemas from `mxc` over standard OCI registry schemas (`github.com/epcim/mxc/...`).
 
+### 2. Standalone Clusters vs. Hierarchical Topology
+MXC supports two deployment patterns:
+* **Standalone Single-Cluster ([`#ClusterMxc`](file:///Users/p.michalec/Workspace/gitea/gitops-infra/mxc/module/schema/cluster.cue#L38))**: Directly deploy single homelab or development clusters without any topology wrappers (see [examples/cluster-standalone](file:///Users/p.michalec/Workspace/gitea/gitops-infra/mxc/examples/cluster-standalone/)).
+* **Hierarchical Topology ([`#Topology`](file:///Users/p.michalec/Workspace/gitea/gitops-infra/mxc/module/schema/topology.cue#L34) & [`#Location`](file:///Users/p.michalec/Workspace/gitea/gitops-infra/mxc/module/schema/topology.cue#L12))**: Manage multi-region cloud fleets (AWS, GCP) and edge sites with recursive locations and global platform inheritance (see [examples/topology-multicloud](file:///Users/p.michalec/Workspace/gitea/gitops-infra/mxc/examples/topology-multicloud/) and [docs/topology.md](file:///Users/p.michalec/Workspace/gitea/gitops-infra/mxc/docs/topology.md)).
+
 ---
 
 ## ✨ Core Features & Advanced Capabilities
@@ -259,6 +264,47 @@ apps: hajimari: {
     }
 }
 ```
+
+### 🔌 Adapter Selection & Multi-Adapter Chaining
+
+MXC applications can target a single deployment engine or an ordered pipeline of adapters:
+
+```cue
+// Single adapter (default: "kluctl")
+apps: webapp: {
+    appName: "webapp"
+    adapter: "kluctl"
+    // ...
+}
+
+// Multi-adapter execution / chaining (e.g. Helm rendering followed by Kustomize transformations)
+apps: complexApp: {
+    appName: "complexApp"
+    adapter: ["helm", "kustomize"]
+    // ...
+}
+```
+
+### 📐 Projection Architecture & Custom Topologies
+
+Adapters project high-level topology into deployer-facing outputs via `#BaseProjection` and `#BaseAppAdapter`:
+
+* **Standard Cluster Projections**: Default platform adapters (`kluctl`, `helm`, `kustomize`, `argocd`) iterate over `cluster.apps` (grouped by category) and project each `#App` / `#AppMxc` into target parameters.
+* **Custom Topology Projections**: For topologies using `#TopologyAlpha` (with `deploy.instances`), users can define dedicated projections that iterate over `deploy.instances` rather than `cluster.apps`:
+  ```cue
+  #DeployInstancesProjection: {
+      topology: #TopologyAlpha
+      output: {
+          for instName, instSpec in topology.deploy.instances {
+              "\(instName)": (adp_kustomize.#AppAdapter & {
+                  name: instName
+                  spec: instSpec.app
+                  cluster: topology.clusters[instSpec.cluster].cluster
+              }).output
+          }
+      }
+  }
+  ```
 
 ---
 

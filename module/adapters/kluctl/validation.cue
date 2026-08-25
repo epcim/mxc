@@ -9,7 +9,7 @@ import (
 // #Validation holds optional package-level validations for the Kluctl adapter.
 // These are unified with the #Projection block to enforce SRE boundaries.
 #Projection: {
-	cluster: schema.#ClusterConfig
+	cluster: schema.#ClusterMxc
 
 	// 1. Enforce clusterName is defined and non-empty
 	cluster: clusterName: !=""

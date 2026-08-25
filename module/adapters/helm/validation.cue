@@ -9,7 +9,7 @@ import (
 // #Validation holds package-level validations for the Helm adapter.
 // These are unified with the #Projection block to enforce SRE boundaries.
 #Projection: {
-	cluster: schema.#ClusterConfig
+	cluster: schema.#ClusterMxc
 
 	// Validate Helm-specific constraints for workloads using the helm adapter
 	for catKey, catApps in cluster.apps {

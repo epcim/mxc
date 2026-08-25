@@ -16,25 +16,26 @@ As a Gemini agent, you possess an exceptional understanding of **CUE Lang**'s lo
 
 ## 📁 Layout Boundaries
 
-All MXC configurations are self-contained inside the `./mxc/` directory at the root of the repository:
+All MXC configurations are self-contained inside the workspace directory:
 
 ```text
-mxc/                               # Fully self-contained CUE configuration kernel at repository root
-+-- cue.mod/                   # CUE module metadata (github.com/epcim/mxc)
-    +-- schema/                    # Central, tool-agnostic validation rules
-    │   +-- apps.cue               # Workload intent schema (#App, #AppMxc)
-    │   +-- cluster.cue            # Infrastructure boundaries (#Cluster, #WithKube, #WithNetwork)
-    │   +-- platform.cue           # Platform primitive (#Platform) & profiles re-export
-    │   +-- platforms/             # Pure platform execution schemas (k8s, compose, aws, k0rdent)
-    │   +-- mxc/                   # MXC reference profile & container facets (#ImageSpec, #KubeSpec, #PlatformMxc)
-    │   +-- adapter.cue            # Decoupled output adapter interface (#Adapter)
-    │
-    +-- adapters/                  # Platform Output Adapters (AD-003)
-    │   +-- app_template/          # bjw-s app-template logical projection
-    │   +-- kluctl/                # Generic Kluctl render manifests & overlays
-    │   +-- kustomize-only/        # Direct Kustomize manifest injections
-    │
-    +-- mxc.just                   # Self-contained task-runner module
+mxc (as repo)
++-- module/                    # Publishable github.com/epcim/mxc module
+│   +-- cue.mod/               # CUE module metadata (github.com/epcim/mxc)
+│   +-- schema/                # Central, tool-agnostic validation rules
+│   │   +-- apps.cue           # Workload intent schema (#App, #AppMxc)
+│   │   +-- cluster.cue        # Compute boundaries & facets (#Cluster, #WithKube, #WithNetwork)
+│   │   +-- platform.cue       # Platform primitive (#Platform) & profiles re-export
+│   │   +-- platforms/         # Pure platform execution schemas (k8s, compose, aws, k0rdent)
+│   │   +-- mxc/               # MXC reference profile & container facets (#ImageSpec, #KubeSpec, #PlatformMxc)
+│   │   +-- adapter.cue        # Decoupled output adapter interface (#Adapter)
+│   │
+│   +-- adapters/              # Platform Output Adapters (AD-003)
+│       +-- app_template/      # bjw-s app-template logical projection
+│       +-- kluctl/            # Generic Kluctl render manifests & overlays
+│       +-- kustomize/         # Direct Kustomize manifest injections
+│
++-- mxc.just                   # Self-contained task-runner module
 ```
 
 ---
@@ -47,8 +48,8 @@ Never run raw shell hacks. Always use the nested, parameterizable `just` task na
 # 1. Validate all schemas & values against type constraints
 just mxc::validate
 
-# 2. Compile and output flat parameters (vars.yml) to stdout
-just mxc::export
+# 2. Compile and output flat parameters (vars.yml) to stdout for a specific cluster
+just mxc::export cluster-home-mxc
 
 # 3. Generate Editor Autocompletion Schemas
 just mxc::schema-export
@@ -59,8 +60,8 @@ just mxc::schema-export
 ## 🎨 Design Principles for Gemini Authors
 
 ### 1. Separate Workload Intent from Cluster Reality
-* **Workload Spec (`apps.cue`):** Focuses strictly on abstract developer requests (`expose: target: "ingress"`, storage sizes). Never leak internal container ports or specific domain suffixes here.
-* **Infrastructure Spec (`cluster.cue`):** Maps logical intents to physical cluster capabilities (injecting `storageClass: "longhorn"`, base domains `example.com`, and VIP configurations).
+* **Workload Spec (`apps.cue` / `#AppMxc`):** Focuses strictly on abstract developer requests (`expose: http: target: "ingress"`, storage sizes). Never leak internal container ports, VIPs, or physical subnets/domain suffixes here.
+* **Infrastructure Spec (`cluster.cue` / `#WithNetwork` & `#WithKube`):** Maps logical intents to physical cluster capabilities (injecting `storageClass: "longhorn"`, base domains `example.com`, MetalLB IP pools, and VIP allocations). `#WithNetwork` keeps physical IPAM configurations isolated at the cluster boundary.
 
 ### 2. Standardizing API Endpoints (The API vs Port Isolation Rule)
 Never hardcode protocol-specific transport ports (such as SSH running on port 2222) inside standard REST API endpoints (like `RENOVATE_ENDPOINT`).
@@ -118,6 +119,55 @@ When refactoring schema-level fields or parameters in the core compiler schema (
 3. **Step 3: Cleanup**: Once all consumers have migrated, safely delete the legacy properties and their auto-derivation blocks from the core compiler schemas.
 
 This ensures zero compilation or parameter-rendering disruption across target platforms during major refactoring efforts.
+
+---
+
+## 📜 Changelog & Migration Playbook (Adapting to Schema Changes)
+
+When upgrading older cluster configurations, library stacks, or adapter projections, follow this agent migration playbook:
+
+### 1. Workload Declarations (`apps.cue`): `#AppCore` ➔ `#AppMxc`
+* **Change**: `#AppCore` is superseded by `#AppMxc` (unification of pristine `#App` with container intent facets `mxc.#AppSpec`).
+* **Migration**:
+  ```cue
+  // Before:
+  my_app: schema.#AppCore & { ... }
+  // After:
+  my_app: schema.#AppMxc & { ... }
+  ```
+
+### 2. Cluster Descriptors (`globals.cue` / `vars-env.cue`): `#ClusterConfig` / `#Cluster & #WithPlatform` ➔ `#ClusterMxc`
+* **Change**: Cluster definitions use `#ClusterMxc` (`#Cluster & mxc.#WithNetwork & #WithApps`). Platform profiles (`#PlatformMxc` or `#PlatformMxcLab`) are placed directly under `cluster.platform`.
+* **Migration**:
+  ```cue
+  // Before:
+  C=cluster: schema.#Cluster & schema.#WithPlatform & {
+      platform: schema.#PlatformMxcLab & { ... }
+  }
+  // After:
+  C=cluster: schema.#ClusterMxc & {
+      platform: schema.#PlatformMxcLab & { ... }
+  }
+  ```
+
+### 3. Storage Adapters (`fixtures.cue`): `#Storage.appSpec` ➔ `schema.#AppMxc`
+* **Change**: Pristine `#App` is agnostic and does not declare container storage. Adapters evaluating storage volumes must type their input as `schema.#AppMxc` (or `mxc.#AppSpec`).
+* **Migration**:
+  ```cue
+  // In adapter fixtures.cue:
+  #Storage: {
+      appSpec: schema.#AppMxc
+      ...
+  }
+  ```
+
+### 4. Fleet Management: Standalone (`#ClusterMxc`) vs. Hierarchical Topology (`#Topology`)
+* **Change**: Multi-cluster, multi-region cloud (AWS/GCP), and edge sites use `schema.#Topology` and recursive `schema.#Location` blocks (see `docs/topology.md` and `examples/topology-multicloud/`).
+* **Migration**: Standalone clusters remain direct `#ClusterMxc` without dummy topology wrappers; fleet setups wrap locations under `topology: schema.#Topology & { ... }`.
+
+### 5. Automated Agent Migration Skill
+For automated agent-driven upgrades across repositories, refer to the local migration skill at:
+* [`.agents/skills/mxc-migration/SKILL.md`](.agents/skills/mxc-migration/SKILL.md)
 
 ---
 

@@ -30,7 +30,7 @@ import (
 	services: [
 		for catKey, catApps in P.cluster.apps
 		for appKey, appSpec in catApps {
-			name:    appSpec.appName
+			name:     appSpec.appName
 			category: catKey
 			adapter:  appSpec.adapter
 			if appSpec.appDesc != _|_ {description: appSpec.appDesc}

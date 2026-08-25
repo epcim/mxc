@@ -1,10 +1,13 @@
 set quiet := true
 
 root := env_var_or_default("GIT_ROOT", `git rev-parse --show-toplevel 2>/dev/null || pwd`)
+workspace_root := if path_exists(source_dir() + "/../cluster-home-mxc") == "true" { source_dir() + "/.." } else if path_exists(source_dir() + "/../../cluster-home-mxc") == "true" { source_dir() + "/../.." } else { root }
 BUILD_DIR := env('BUILD_DIR', root + "/.build")
 TARGET := env('MXC_TARGET', env('TARGET', '.'))
 GHCR_USER := env('GHCR_USER', '')
-_module_dir := if path_exists(root + "/module/cue.mod") == "true" { root + "/module" } else { source_dir() }
+[private]
+_module_dir := if path_exists(source_dir() + "/module/cue.mod") == "true" { source_dir() + "/module" } else if path_exists(source_dir() + "/schema") == "true" { source_dir() } else { root + "/mxc/module" }
+[private]
 _registry_config := "file:" + root + "/registry.cue"
 
 # Format all CUE files in repository / target
@@ -414,13 +417,21 @@ vendor-upstream-copy:
     #!/usr/bin/env bash
     set -euo pipefail
     echo "▶ Syncing mxc module into dependent local packages..."
-    if [[ -d "{{ root }}/cluster-home-mxc" ]]; then
-        mkdir -p "{{ root }}/cluster-home-mxc/cue.mod/pkg/github.com/epcim/mxc"
-        rsync -a --delete --exclude='.git*' "{{ _module_dir }}/" "{{ root }}/cluster-home-mxc/cue.mod/pkg/github.com/epcim/mxc/"
+    if [[ -d "{{ workspace_root }}/cluster-home-mxc" ]]; then
+        mkdir -p "{{ workspace_root }}/cluster-home-mxc/cue.mod/pkg/github.com/epcim/mxc"
+        rsync -a --delete --exclude='.git*' "{{ _module_dir }}/" "{{ workspace_root }}/cluster-home-mxc/cue.mod/pkg/github.com/epcim/mxc/"
     fi
-    if [[ -d "{{ root }}/mxc-library" ]]; then
-        mkdir -p "{{ root }}/mxc-library/cue.mod/pkg/github.com/epcim/mxc"
-        rsync -a --delete --exclude='.git*' "{{ _module_dir }}/" "{{ root }}/mxc-library/cue.mod/pkg/github.com/epcim/mxc/"
+    if [[ -d "{{ workspace_root }}/mxc-library" ]]; then
+        mkdir -p "{{ workspace_root }}/mxc-library/cue.mod/pkg/github.com/epcim/mxc"
+        rsync -a --delete --exclude='.git*' "{{ _module_dir }}/" "{{ workspace_root }}/mxc-library/cue.mod/pkg/github.com/epcim/mxc/"
+    fi
+    if [[ -d "{{ workspace_root }}/mxc-library/module" && -d "{{ workspace_root }}/cluster-home-mxc" ]]; then
+        mkdir -p "{{ workspace_root }}/cluster-home-mxc/cue.mod/pkg/github.com/epcim/mxc-library"
+        rsync -a --delete --exclude='.git*' "{{ workspace_root }}/mxc-library/module/" "{{ workspace_root }}/cluster-home-mxc/cue.mod/pkg/github.com/epcim/mxc-library/"
+    fi
+    if [[ -d "{{ workspace_root }}/mxc-library/module" && -d "{{ workspace_root }}/mxc" ]]; then
+        mkdir -p "{{ workspace_root }}/mxc/cue.mod/pkg/github.com/epcim/mxc-library"
+        rsync -a --delete --exclude='.git*' "{{ workspace_root }}/mxc-library/module/" "{{ workspace_root }}/mxc/cue.mod/pkg/github.com/epcim/mxc-library/"
     fi
     echo "✓ Synced mxc module successfully."
 
@@ -435,22 +446,17 @@ _vet dest=TARGET *args="":
 # Run CUE schema test validations and CI checks for Forgejo / GitHub Actions
 [group('mxc')]
 [no-cd]
-test-alpha:
+test-topology:
     #!/usr/bin/env bash
     set -euo pipefail
     (cd {{ _module_dir }} && cue vet ./schema/...)
     (cd {{ root }}/test && cue vet ./...)
-    (cd {{ root }}/test && cue export ./topology_alpha.cue -e alphaMultiClusterFixture --out json) | jq -e '.clusters.gc01.cluster.clusterName == "gc01" and .deploy.instances["kafka-gc"].appInstance == "kafka-gc" and (.deploy.instances["kafka-ce"].placement.clusters | length) == 2' >/dev/null
-    (cd {{ root }}/test && cue export ./topology_alpha.cue -e adapterIdentityFixture --out json) | jq -e '.simple.appInstance == "kafka" and .deployed.appInstance == "kafka-gc" and .customized.appInstance == "kafka-shard-0"' >/dev/null
-    if (cd {{ root }}/test && cue eval ./topology_alpha.cue -e 'alphaMultiClusterFixture & {deploy: instances: invalid: {app: _kafkaSpec, placement: clusters: []}}') >/dev/null 2>&1; then
-        echo "Empty placement unexpectedly accepted" >&2
-        exit 1
-    fi
-    if (cd {{ root }}/test && cue eval ./topology_alpha.cue -e 'alphaMultiClusterFixture & {deploy: instances: "kafka-gc": instanceName: ""}') >/dev/null 2>&1; then
-        echo "Empty instance name unexpectedly accepted" >&2
-        exit 1
-    fi
-    (cd {{ root }}/test && cue eval ./topology_alpha.cue -e 'alphaMultiClusterFixture & {deploy: instances: extra: {app: _kafkaSpec, placement: clusters: ["gc01"]}}') >/dev/null
+    (cd {{ root }}/test && cue export ./topology.cue -e topologyFixture --out json) | jq -e '.location.cloud.location["aws-us-east-2"].cluster.gc01.clusterName == "gc01" and .location.cloud.location["aws-us-east-2"].cluster.gc01.apps.data["kafka-01"].appName == "kafka" and .location.edge.location["site-prague"].cluster.edge01.apps.iot.esphome.appName == "esphome"' >/dev/null
+    (cd {{ root }}/test && cue export ./topology.cue -e adapterIdentityFixture --out json) | jq -e '.simple.output.appName == "kafka" and .customized.appInstance == "kafka-shard-0"' >/dev/null
+
+[group('mxc')]
+[no-cd]
+test-alpha: test-topology
 
 [group('mxc')]
 [no-cd]
@@ -532,7 +538,7 @@ schema-sync target=TARGET:
     (cd {{ _module_dir }} && cue export ./schema -e '#WithNetwork' --out jsonschema) > {{ root }}/docs/generated-schema/vars-net.schema.json
     (cd {{ _module_dir }} && cue export ./schema -e '#WithKube' --out jsonschema) > {{ root }}/docs/generated-schema/vars-k8s.schema.json
     (cd {{ _module_dir }} && cue export ./schema -e '#Platform' --out jsonschema) > {{ root }}/docs/generated-schema/platform.schema.json
-    (cd {{ _module_dir }} && cue export ./schema --out jsonschema -e '#ClusterConfig') > {{ root }}/docs/generated-schema/mxc-cluster.schema.json
+    (cd {{ _module_dir }} && cue export ./schema --out jsonschema -e '#ClusterMxc') > {{ root }}/docs/generated-schema/mxc-cluster.schema.json
     echo "✓ Exported core JSON schemas into docs/generated-schema/."
 
     echo "▶ Harvesting application valuesSchema definitions for target {{ target }}..."
@@ -549,13 +555,13 @@ schema-sync target=TARGET:
     done
     echo "✓ Completed harvesting values schemas."
 
-
 # Export adapter-oriented outputs once the corresponding CUE projections exist.
 [group('mxc')]
 export-argocd dest=TARGET expr="adapters.argocd.output" *args="":
     just _export {{ dest }} {{ expr }} {{ args }}
 
 # Global OCI wrappers. They dispatch artifact-specific tasks so the public
+
 # command surface can stay stable while MXC grows multiple publishable units.
 [group('mxc-oci')]
 ghcr-status:
@@ -619,3 +625,58 @@ _oci-publish artifact version *args="":
       *) \
         echo "Unknown artifact: {{ artifact }}" >&2; exit 1 ;; \
     esac
+
+# Update and vendor CUE module dependencies from OCI registry into cue.mod/pkg/
+
+# Usage: just mxc::mod-update [module] [version]
+[group('mxc')]
+mod-update module="" version="latest":
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    TARGET_MODULE="{{ module }}"
+    TARGET_VERSION="{{ version }}"
+    PKGS=()
+
+    if [ -n "$TARGET_MODULE" ]; then
+        PKGS=("$TARGET_MODULE")
+    elif [ -d "cue.mod/pkg" ]; then
+        while IFS= read -r pkg_dir; do
+            rel="${pkg_dir#cue.mod/pkg/}"
+            if [[ "$rel" == github.com/*/* ]] || [[ "$rel" == gitlab.com/*/* ]] || [[ "$rel" == cue.dev/*/* ]]; then
+                PKGS+=("$rel")
+            fi
+        done < <(find cue.mod/pkg -mindepth 3 -maxdepth 3 -type d 2>/dev/null)
+    fi
+
+    if [ ${#PKGS[@]} -eq 0 ]; then
+        echo "No external packages detected in cue.mod/pkg/."
+        exit 0
+    fi
+
+    for pkg in "${PKGS[@]}"; do
+        echo "▶ Updating $pkg@$TARGET_VERSION..."
+        cue mod get "$pkg@$TARGET_VERSION"
+
+        pkg_name=$(basename "$pkg")
+        CACHE_DIR=""
+        for base in ~/Library/Caches/cue ~/.cache/cue; do
+            if [ -d "$base" ]; then
+                found=$(find "$base" -type d -name "${pkg_name}@*" 2>/dev/null | grep -E "/extract/${pkg}@[^/]+$" | sort -V | tail -n 1 || true)
+                if [ -n "$found" ]; then
+                    CACHE_DIR="$found"
+                    break
+                fi
+            fi
+        done
+
+        if [ -n "$CACHE_DIR" ] && [ -d "$CACHE_DIR" ]; then
+            echo "▶ Syncing from $CACHE_DIR to cue.mod/pkg/$pkg..."
+            mkdir -p "cue.mod/pkg/$pkg"
+            rsync -a --delete "$CACHE_DIR/" "cue.mod/pkg/$pkg/"
+            cue mod edit --drop-require "${pkg}@v0" 2>/dev/null || true
+            echo "✓ Successfully updated and vendored $pkg ($(basename "$CACHE_DIR"))"
+        else
+            echo "✓ Successfully updated $pkg"
+        fi
+    done

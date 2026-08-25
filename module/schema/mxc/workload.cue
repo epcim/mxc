@@ -23,9 +23,9 @@ import (
 
 // #ExposeSpec defines ingress and external routing intents.
 #ExposeSpec: [PortName=string]: {
-	target:       "ingress" | "loadbalancer" | "internal" | "none" | *"none"
-	ingressClass: string | *"" // Automatically resolved by compiler if empty
-	fqdn?:        string       // Automatically resolved by compiler if empty
+	target:        "ingress" | "loadbalancer" | "internal" | "none" | *"none"
+	ingressClass?: string | *"" // Automatically resolved by compiler if empty
+	fqdn?:         string       // Automatically resolved by compiler if empty
 	annotations?: [string]: string
 	...
 }
@@ -76,4 +76,46 @@ import (
 		requests: {cpu: "2", memory: "2Gi"}
 		limits: {cpu: "4", memory: "4Gi"}
 	}
+}
+
+// #AppContainer defines MXC container lifecycle, storage, expose, and platform escape extensions.
+#AppContainer: {
+	image?:    #ImageSpec
+	ports?:    #PortsSpec
+	expose?:   #ExposeSpec
+	storage?:  #StorageSpec
+	secrets?:  #SecretsSpec
+	platform?: #PlatformMxc
+
+	// Dynamic kustomize context mappings matching full upstream schemas (auto-bridged to platform.k8s.kustomize)
+	kustomize?: external.#Kustomization
+
+	// Escape hatch for Mirantis K0rdent service configurations (auto-bridged to platform.k0rdent)
+	k0rdent?: {
+		serviceSpec?: {
+			[string]: _
+		}
+		template?: string
+		values?: {
+			[string]: _
+		}
+	}
+
+	// Automatic bridging to canonical platform scopes
+	if kustomize != _|_ {
+		platform: k8s: kustomize: kustomize
+	}
+	if k0rdent != _|_ {
+		platform: k0rdent: k0rdent
+	}
+
+	// Application-specific templates or custom overlays configuration
+	overlays?: {
+		[string]: _
+	}
+
+	// Extensible helm chart properties for native helm deployments
+	helmChart?: external.#HelmChartSpec
+
+	...
 }

@@ -36,11 +36,17 @@ import (
 		...
 	}
 
+	// Automatic workload annotations applied across application deployments
+	workloadAnnotations?: [string]: string
+
 	// Scoped Kubernetes manifest customization engine
 	kustomize?: external.#Kustomization
 
 	// Scoped native Helm chart specification
 	helmChart?: external.#HelmChartSpec
+
+	// Kubernetes network security policies for pod traffic isolation
+	networkPolicies?: [string]: external.#K8sNetworkPolicy
 
 	// Runtime pod scheduling & security defaults
 	runtime?: {

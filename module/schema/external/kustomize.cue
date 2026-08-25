@@ -1,9 +1,5 @@
 package external
 
-@jsonschema(schema="http://json-schema.org/draft-07/schema#")
-
-#Kustomization
-
 // ConfigMapArgs contains the metadata of how to generate a configmap
 #ConfigMapArgs: close({
 	KVSources?: [...#KVSource]
