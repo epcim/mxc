@@ -1,5 +1,10 @@
 # Model-X Configuration (MXC)
 
+This project is attempt for flexible, declarative concept of configuration managemen (of any kind) with CUE lang.
+You can be 100% sure there is a human behind core concepts design and code reviews.
+
+_(By following further, please acknowledge you have been warned that rest of the README and DOCS are written by agents)._
+
 MXC is a declarative, type-safe, and compile-time-validated platform configuration engine. It separates abstract developer **logical intent** from physical **runtime deployment engines** (such as Kluctl, Kustomize, and Helm).
 
 [![Docs & Interactive Playground](https://img.shields.io/badge/Docs-Interactive%20Playground-6366f1?style=for-the-badge)](https://epcim.github.io/mxc)
@@ -14,19 +19,32 @@ Adapters simply transform this exported data into native input formats for whate
 
 ```text
                       ┌────────────────────────────────────────┐
-                      │       just mxc::apply TARGET           │
+                      │       just mxc::export TARGET [FLAGS]  |
+                      │       just mxc::build TARGET [FLAGS]   |
+                      │       just mxc::diff TARGET [FLAGS]    |
+                      │       just mxc::run TARGET [FLAGS]     |
                       └──────────────────┬─────────────────────┘
                                          │
-                         CUE evaluates adapter for tag
+                       CUE evaluates adapter for build
+                      ┌────────────────────────────────────────┐
+                      │       just mxc::build TARGET [FLAGS]   |
+                      └──────────────────┬─────────────────────┘
                                          │
+             Adapters                    │
              ┌───────────────────────────┼───────────────────────────┬───────────────────────────┐
              ▼                           ▼                           ▼                           ▼
      ┌───────────────┐           ┌───────────────┐           ┌───────────────┐           ┌───────────────┐
      │    kluctl     │           │   kustomize   │           │    k0rdent    │           │   terraform   │
      └───────┬───────┘           └───────┬───────┘           └───────┬───────┘           └───────┬───────┘
              │                           │                           │                           │
+             │                           │                           │                           │
+             │                           │                           │                           │
       kluctl deploy ...        kustomize build /           kcm apply /                 tofu / terraform
                                kubectl apply -f            kubectl apply -f CR         apply ...
+
+
+     ^^ Run/Execution layer is up to you, idelly one of well-known CICD tools.
+        For easy CLI usage the Justfile implementation is shipped in mxc.just.
 ```
 
 ---
