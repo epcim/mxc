@@ -7,11 +7,22 @@
 // ==============================================================================
 package schema
 
+// #LocationRef defines a symbolic pointer to a physical or logical location.
+#LocationRef: {
+	ref?: string // canonical path, e.g. "cloud.aws.us-east-2"
+	id?:  string // provider ID, e.g. "site-par2", "vpc-12345"
+	...
+}
+
 // #Location defines a physical or logical infrastructure boundary
 // (e.g., cloud provider, region, datacenter, zone, rack, or site).
 #Location: {
 	name?: string
 	tags?: [...string]
+
+	// Single or multiple location references / network peerings
+	locationRef?:  string | #LocationRef | [...(string | #LocationRef)]
+	locationRefs?: [...(string | #LocationRef)]
 
 	// Target platform adaptation parameters attached at location level
 	platform?: #Platform
@@ -31,7 +42,7 @@ package schema
 	cluster?:  {[string]: #Cluster}
 
 	// Pure name-based child compute clusters / sub-locations
-	[=~"^[a-zA-Z0-9_-]+$" & !~"^(apiVersion|kind|name|type|locationRef|location|locations|cluster|clusters|instances|apps|tags|platform|values|context|env|endpoints|owner|stack|flavor|package|packageSource|clusterName|clusterType|environment|domain|dependsOn|externals|gc|ce|re)$"]: #Cluster | #Location
+	[=~"^[a-zA-Z0-9_-]+$" & !~"^(apiVersion|kind|name|type|locationRef|locationRefs|location|locations|cluster|clusters|instances|apps|tags|platform|values|context|env|endpoints|owner|stack|flavor|package|packageSource|clusterName|clusterType|environment|domain|dependsOn|externals|gc|ce|re)$"]: #Cluster | #Location
 	...
 }
 
@@ -57,6 +68,6 @@ package schema
 	location?:  {[string]: #Location}
 
 	// Pure name-based root locations (e.g. gc, ce, cloud, aws)
-	[=~"^[a-zA-Z0-9_-]+$" & !~"^(apiVersion|kind|name|type|locationRef|location|locations|cluster|clusters|instances|apps|tags|platform|values|context|env|endpoints|owner|stack|flavor|package|packageSource|clusterName|clusterType|environment|domain|dependsOn|externals|gc|ce|re)$"]: #Location
+	[=~"^[a-zA-Z0-9_-]+$" & !~"^(apiVersion|kind|name|type|locationRef|locationRefs|location|locations|cluster|clusters|instances|apps|tags|platform|values|context|env|endpoints|owner|stack|flavor|package|packageSource|clusterName|clusterType|environment|domain|dependsOn|externals|gc|ce|re)$"]: #Location
 	...
 }

@@ -108,6 +108,88 @@ MXC supports two deployment patterns:
 
 ---
 
+## 🗺️ Core Schema Mapping & Hierarchy (90% of Configurations)
+
+MXC maps 90%+ of infrastructure, cloud, edge, and workload configurations using just **4 pristine primitives**:
+
+```text
+┌────────────────────────────────────────────────────────────────────────┐
+│ #Topology (Root Graph / Document)                                      │
+│                                                                        │
+│   ┌────────────────────────────────────────────────────────────────┐   │
+│   │ #Location (Provider / Region / DC / Zone / Rack / Site)         │   │
+│   │                                                                │   │
+│   │   locationRefs: ["cloud.aws.us-east-1", "cloud.aws.us-west-2"] │   │
+│   │   platform:     { engine: "k8s", clusterType: "eks" }          │   │
+│   │                                                                │   │
+│   │   ┌────────────────────────────────────────────────────────┐   │   │
+│   │   │ #Cluster (Compute Target Platform / Cluster Instance)  │   │   │
+│   │   │                                                        │   │   │
+│   │   │   clusterName: "gc01"                                  │   │   │
+│   │   │   environment: "production"                            │   │   │
+│   │   │                                                        │   │   │
+│   │   │   ┌────────────────────────────────────────────────┐   │   │   │
+│   │   │   │ #App (Workload Service / Pod / Helm Chart)     │   │   │   │
+│   │   │   │                                                │   │   │   │
+│   │   │   │   appName:     "powerdns" (Base Package / S3)  │   │   │   │
+│   │   │   │   appInstance: "powerdns-gc" (Runtime Instance)│   │   │   │
+│   │   │   │   values:      { replicas: 3, port: 53 }       │   │   │   │
+│   │   │   └────────────────────────────────────────────────┘   │   │   │
+│   │   └────────────────────────────────────────────────────────┘   │   │
+│   └────────────────────────────────────────────────────────────────┘   │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+### 1. Natural Instance Naming via Topology Keys
+The dictionary key in the topology **is** the canonical instance name:
+
+```text
+topology: {
+  gc: {                             // <-- Location Instance: "gc"
+    gc01: {                         // <-- Cluster Instance: "gc01"
+      apps: {
+        mars1: {                    // <-- App Instance: "mars1"
+          appName: "mars"           // <-- Base Package / Service: "mars"
+        }
+        mars2: {                    // <-- App Instance: "mars2"
+          appName: "mars"
+        }
+      }
+    }
+  }
+}
+```
+
+### 2. Multi-Region & Network Peerings (`locationRefs`)
+For Transit Gateways, DirectConnects, and cross-region interconnects, a `#Location` can reference multiple peers:
+
+```text
+┌──────────────────────────────────────┐       ┌──────────────────────────────────────┐
+│  Location: cloud.aws["us-east-1"]    │       │  Location: cloud.aws["us-west-2"]    │
+└──────────────────┬───────────────────┘       └──────────────────┬───────────────────┘
+                   │                                              │
+                   └──────────────────────┬───────────────────────┘
+                                          ▼
+                      ┌───────────────────────────────────────┐
+                      │  Location: cloud.aws["tgw-mesh"]      │
+                      │  locationRefs: [                      │
+                      │    "cloud.aws.us-east-1",             │
+                      │    "cloud.aws.us-west-2"              │
+                      │  ]                                    │
+                      └───────────────────────────────────────┘
+```
+
+### 3. Schema Primitives at a Glance
+
+| Schema | Role | Responsibilities & Mappings |
+|---|---|---|
+| **`#Topology`** | Root graph | Top-level entrypoint, global `platform` defaults, environment context. |
+| **`#Location`** | Geographic / Provider boundary | Regions, VPCs, DCs, Sites. Holds `locationRefs`, nested `locations`, and `clusters`. |
+| **`#Cluster`** | Compute target | Kubernetes cluster, VM group, edge site. Holds target `platform`, `env`, and `apps`. |
+| **`#App`** | Workload intent | Service definitions, image/tag, ports, storage, replicas, Helm/Kluctl `values`. |
+
+---
+
 ## ✨ Core Features & Advanced Capabilities
 
 ### 🛡️ Upstream Chart Schema Vendoring & Typo Protection
