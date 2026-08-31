@@ -1,7 +1,8 @@
 set quiet := true
 
 root := env_var_or_default("GIT_ROOT", `git rev-parse --show-toplevel 2>/dev/null || pwd`)
-workspace_root := if path_exists(source_dir() + "/../cluster-home-mxc") == "true" { source_dir() + "/.." } else if path_exists(source_dir() + "/../../cluster-home-mxc") == "true" { source_dir() + "/../.." } else { root }
+workspace_root := if path_exists(source_dir() + "/../.kluctl.yml") == "true" { source_dir() + "/.." } else if path_exists(source_dir() + "/../../.kluctl.yml") == "true" { source_dir() + "/../.." } else { root }
+CUE_MODULES_DIR := env('CUE_MODULES_DIR', workspace_root)
 BUILD_DIR := env('BUILD_DIR', root + "/.build")
 TARGET := env('MXC_TARGET', env('TARGET', '.'))
 GHCR_USER := env('GHCR_USER', '')
@@ -413,31 +414,49 @@ sync dest=TARGET:
 # Vendor/copy local mxc module into dependent packages (cluster-home-mxc, mxc-library) if present
 [group('mxc')]
 [no-cd]
-vendor-upstream-copy:
+vendor-upstream-copy target="":
     #!/usr/bin/env bash
     set -euo pipefail
-    echo "▶ Syncing mxc module into dependent local packages..."
-    if [[ -d "{{ workspace_root }}/cluster-home-mxc" ]]; then
-        mkdir -p "{{ workspace_root }}/cluster-home-mxc/cue.mod/pkg/github.com/epcim/mxc"
-        rsync -a --delete --exclude='.git*' "{{ _module_dir }}/" "{{ workspace_root }}/cluster-home-mxc/cue.mod/pkg/github.com/epcim/mxc/"
+    modules_dir="${CUE_MODULES_DIR:-{{ workspace_root }}}"
+    echo "▶ Discovering and syncing local CUE modules from $modules_dir..."
+
+    # Discover all source CUE modules in modules_dir
+    declare -A local_modules
+    while IFS= read -r mod_file; do
+        mod_dir="$(dirname "$(dirname "$mod_file")")"
+        mod_name="$(grep -E '^[[:space:]]*module:[[:space:]]*"' "$mod_file" | sed -E 's/.*module:[[:space:]]*"([^"]+)".*/\1/' || true)"
+        if [[ -n "$mod_name" ]]; then
+            local_modules["$mod_name"]="$mod_dir"
+        fi
+    done < <(find "$modules_dir" -name "module.cue" -not -path '*/.git/*' -not -path '*/cue.mod/pkg/*' 2>/dev/null)
+
+    # Determine destination targets
+    targets=()
+    if [[ -n "{{ target }}" ]]; then
+        targets+=("{{ target }}")
+    else
+        while IFS= read -r mod_file; do
+            t_dir="$(dirname "$(dirname "$mod_file")")"
+            targets+=("$t_dir")
+        done < <(find "{{ workspace_root }}" -name "module.cue" -not -path '*/.git/*' -not -path '*/cue.mod/pkg/*' 2>/dev/null)
     fi
-    if [[ -d "{{ workspace_root }}/mxc-library" ]]; then
-        mkdir -p "{{ workspace_root }}/mxc-library/cue.mod/pkg/github.com/epcim/mxc"
-        rsync -a --delete --exclude='.git*' "{{ _module_dir }}/" "{{ workspace_root }}/mxc-library/cue.mod/pkg/github.com/epcim/mxc/"
-    fi
-    if [[ -d "{{ workspace_root }}/mxc-library/module" && -d "{{ workspace_root }}/cluster-home-mxc" ]]; then
-        mkdir -p "{{ workspace_root }}/cluster-home-mxc/cue.mod/pkg/github.com/epcim/mxc-library"
-        rsync -a --delete --exclude='.git*' "{{ workspace_root }}/mxc-library/module/" "{{ workspace_root }}/cluster-home-mxc/cue.mod/pkg/github.com/epcim/mxc-library/"
-    fi
-    if [[ -d "{{ workspace_root }}/mxc-library/module" && -d "{{ workspace_root }}/mxc" ]]; then
-        mkdir -p "{{ workspace_root }}/mxc/cue.mod/pkg/github.com/epcim/mxc-library"
-        rsync -a --delete --exclude='.git*' "{{ workspace_root }}/mxc-library/module/" "{{ workspace_root }}/mxc/cue.mod/pkg/github.com/epcim/mxc-library/"
-    fi
-    echo "✓ Synced mxc module successfully."
+
+    # Sync discovered local modules into each target's cue.mod/pkg/
+    for t in "${targets[@]}"; do
+        for mod_name in "${!local_modules[@]}"; do
+            src_dir="${local_modules[$mod_name]}"
+            if [[ "$t" != "$src_dir" && "$t" != "$src_dir"/* ]]; then
+                dest_dir="$t/cue.mod/pkg/$mod_name"
+                mkdir -p "$(dirname "$dest_dir")"
+                rsync -a --delete --exclude='.git*' --exclude='cue.mod/pkg' "$src_dir/" "$dest_dir/"
+            fi
+        done
+    done
+    echo "✓ Synced local CUE modules successfully."
 
 # Alias for vendor-upstream-copy
 [group('mxc')]
-vendor-sync: vendor-upstream-copy
+vendor-sync target="": (vendor-upstream-copy target)
 
 [no-cd]
 _vet dest=TARGET *args="":

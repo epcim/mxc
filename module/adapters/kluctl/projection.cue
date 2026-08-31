@@ -3,6 +3,7 @@ package kluctl
 
 import (
 	"list"
+	"github.com/epcim/mxc/fn"
 	"github.com/epcim/mxc/schema"
 )
 
@@ -10,19 +11,20 @@ import (
 // All complex validation resides inside the schema layer (validation.cue / apps.cue).
 #AppAdapter: S=schema.#BaseAppAdapter & {
 	let _isAppTemplate = len([for s in [if (S.spec.valuesSchema & string) != _|_ {[S.spec.valuesSchema]}, if (S.spec.valuesSchema & [...string]) != _|_ {S.spec.valuesSchema}, []][0] if s == "#app-template" {s}]) > 0
-	let _hasPVC = (S.spec.storage != _|_ && !_isAppTemplate) || (S.spec.overlays != _|_ && S.spec.overlays.pvc != _|_) || (output.overlays != _|_ && output.overlays.pvc != _|_)
+	let _specOverlays = (S.spec & {overlays: {}}).overlays
+	let _outOverlays = (output & {overlays: {}}).overlays
+	let _hasPVC = (S.spec.storage != _|_ && !_isAppTemplate) || (_specOverlays.pvc != _|_) || (_outOverlays.pvc != _|_)
 
 	output: {
 		// Direct metadata delivery
-		if S.spec.tags != _|_ {tags: S.spec.tags}
-		if S.spec.k0rdent != _|_ {k0rdent: S.spec.k0rdent}
-		if S.spec.secrets != _|_ {secrets: S.spec.secrets}
-		if S.spec.values != _|_ {values: S.spec.values}
-		if S.spec.kustomize != _|_ {kustomize_spec: S.spec.kustomize}
-		if S.spec.overlays != _|_ {overlays: S.spec.overlays}
+		fn.#Pick & { #src: S.spec, #keys: ["tags", "k0rdent", "secrets", "values", "overlays"] }
+
+		if (S.spec & {kustomize: _}).kustomize != _|_ {
+			kustomize_spec: S.spec.kustomize
+		}
 
 		// Pass-through or generate kustomize file-lists
-		if S.spec.kustomize != _|_ {
+		if (S.spec & {kustomize: _}).kustomize != _|_ {
 			kustomize: {
 				for k, v in S.spec.kustomize if k != "resources" && k != "overlays" {
 					"\(k)": v
@@ -39,13 +41,13 @@ import (
 						if S.spec.kustomize.overlays != _|_ {"overlays/mxc-overlays.yaml"},
 					],
 					[
-						if _hasPVC {"overlays/pvc.yaml"},
+						if _hasPVC && !list.Contains(defaultResources, "overlays/pvc.yaml") {"overlays/pvc.yaml"},
 					],
 				])
 			}
 		}
 
-		if S.spec.kustomize != _|_ && S.spec.kustomize.overlays != _|_ {
+		if (S.spec & {kustomize: _}).kustomize != _|_ && S.spec.kustomize.overlays != _|_ {
 			kustomize_overlays: S.spec.kustomize.overlays
 		}
 		...

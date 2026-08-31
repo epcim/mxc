@@ -75,6 +75,9 @@ import (
 				}
 			]
 		}
+		if spec.overlays != _|_ {
+			overlays: spec.overlays
+		}
 
 		context: (#Projection & {
 			"appSpec": spec

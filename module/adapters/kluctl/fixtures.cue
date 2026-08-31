@@ -21,7 +21,7 @@ import (
 
 	// Polymorphic unification: if app-template is selected, unify with its own schema extension.
 	if _isAppTemplate {
-		S & app_template.#KluctlExtension
+		app_template.#KluctlExtension
 	}
 
 	// Generic fallback parameters for other non-app-template applications.
