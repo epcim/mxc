@@ -23,10 +23,15 @@ package schema
 	}
 
 	// Arbitrary recursive nested sub-locations (e.g. cloud.aws.us-east-2)
-	location?: [string]: #Location
+	locations?: {[string]: #Location}
+	location?:  {[string]: #Location}
 
 	// Compute clusters hosted at this location
-	cluster?: [string]: #ClusterMxc
+	clusters?: {[string]: #Cluster}
+	cluster?:  {[string]: #Cluster}
+
+	// Pure name-based child compute clusters / sub-locations
+	[=~"^[a-zA-Z0-9_-]+$" & !~"^(apiVersion|kind|name|type|locationRef|location|locations|cluster|clusters|instances|apps|tags|platform|values|context|env|endpoints|owner|stack|flavor|package|packageSource|clusterName|clusterType|environment|domain|dependsOn|externals|gc|ce|re)$"]: #Cluster | #Location
 	...
 }
 
@@ -48,6 +53,10 @@ package schema
 	}
 
 	// Physical or logical locations hosting clusters
-	location?: [string]: #Location
+	locations?: {[string]: #Location}
+	location?:  {[string]: #Location}
+
+	// Pure name-based root locations (e.g. gc, ce, cloud, aws)
+	[=~"^[a-zA-Z0-9_-]+$" & !~"^(apiVersion|kind|name|type|locationRef|location|locations|cluster|clusters|instances|apps|tags|platform|values|context|env|endpoints|owner|stack|flavor|package|packageSource|clusterName|clusterType|environment|domain|dependsOn|externals|gc|ce|re)$"]: #Location
 	...
 }

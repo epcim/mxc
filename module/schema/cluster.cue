@@ -8,8 +8,8 @@ import (
 // #Cluster is the foundational compute deployment target primitive.
 // It contains core target properties with zero infrastructure-specific facets.
 #Cluster: {
-	clusterName: string
-	environment: "production" | "staging" | "development" | string
+	clusterName: *"" | string
+	environment: *"development" | "production" | "staging" | string
 	domain?:     string
 
 	// Target platform adaptation configuration (symmetrical with #App.platform and #Location.platform)
@@ -28,9 +28,9 @@ import (
 	...
 }
 
-// #WithApps attaches application workload inventory grouped by category.
+// #WithApps attaches application workload inventory (flat or grouped by category).
 #WithApps: {
-	apps: [Category=string]: [AppKey=string]: #App
+	apps?: {[string]: #App} | {[Category=string]: {[AppKey=string]: #App}}
 	...
 }
 
