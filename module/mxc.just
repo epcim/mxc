@@ -699,3 +699,80 @@ mod-update module="" version="latest":
             echo "✓ Successfully updated $pkg"
         fi
     done
+
+# Vendor CUE module dependencies directly from Git or local working directories into cue.mod/pkg/
+# Usage: just mxc::vendor-upstream-git [module] [path_or_ref] [ref]
+# Examples:
+#   just mxc::vendor-upstream-git github.com/epcim/mxc
+#   just mxc::vendor-upstream-git github.com/epcim/mxc ~/Workspace/gitea/gitops-infra/mxc
+#   just mxc::vendor-upstream-git github.com/epcim/mxc feat/custom-schema
+#   just mxc::vendor-upstream-git github.com/epcim/mxc git@github.com:epcim/mxc.git main
+[group('mxc')]
+vendor-upstream-git module="github.com/epcim/mxc" source="" ref="main":
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    MODULE="{{ module }}"
+    SOURCE="{{ source }}"
+    REF="{{ ref }}"
+
+    if [ -z "$MODULE" ]; then
+        echo "Usage: just mxc::vendor-upstream-git <module> [path_or_git_source] [ref]" >&2
+        exit 1
+    fi
+
+    # Expand tilde in SOURCE if present
+    SOURCE="${SOURCE/#\~/$HOME}"
+
+    # If SOURCE is a git branch/tag/ref rather than a path or URL
+    if [[ -n "$SOURCE" && ! -d "$SOURCE" && ! "$SOURCE" =~ ^(https?://|git@|\.|\/) ]]; then
+        REF="$SOURCE"
+        SOURCE=""
+    fi
+
+    # 1. Resolve source if empty: check local workspace first, fallback to https repo
+    if [ -z "$SOURCE" ]; then
+        if [ "$MODULE" = "github.com/epcim/mxc" ]; then
+            for local_path in "$HOME/Workspace/gitea/gitops-infra/mxc" "$HOME/Work/mxc" "../mxc"; do
+                if [ -d "$local_path" ]; then
+                    SOURCE="$local_path"
+                    break
+                fi
+            done
+            if [ -z "$SOURCE" ]; then
+                SOURCE="https://github.com/epcim/mxc.git"
+            fi
+        else
+            SOURCE="https://${MODULE}.git"
+        fi
+    fi
+
+    TMP_DIR=$(mktemp -d)
+    trap 'rm -rf "$TMP_DIR"' EXIT
+
+    if [ -d "$SOURCE" ]; then
+        echo "▶ Syncing $MODULE from local path: $SOURCE"
+        if [ -d "$SOURCE/module" ]; then
+            rsync -a --exclude='.git*' "$SOURCE/module/" "$TMP_DIR/"
+        else
+            rsync -a --exclude='.git*' "$SOURCE/" "$TMP_DIR/"
+        fi
+    else
+        echo "▶ Cloning $MODULE from $SOURCE (ref: $REF)..."
+        git clone --depth 1 --branch "$REF" "$SOURCE" "$TMP_DIR/repo" 2>/dev/null || \
+        git clone --depth 1 "$SOURCE" "$TMP_DIR/repo"
+        if [ -d "$TMP_DIR/repo/module" ]; then
+            rsync -a "$TMP_DIR/repo/module/" "$TMP_DIR/"
+        else
+            rsync -a "$TMP_DIR/repo/" "$TMP_DIR/"
+        fi
+        rm -rf "$TMP_DIR/repo"
+    fi
+
+    TARGET_DIR="cue.mod/pkg/$MODULE"
+    echo "▶ Syncing to $TARGET_DIR..."
+    mkdir -p "$TARGET_DIR"
+    rsync -a --delete --exclude='.git*' --exclude='cue.mod' "$TMP_DIR/" "$TARGET_DIR/"
+    chmod -R u+w "$TARGET_DIR"
+
+    echo "✓ Successfully vendored $MODULE from $SOURCE into $TARGET_DIR"
