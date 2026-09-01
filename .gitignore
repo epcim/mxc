@@ -13,6 +13,6 @@
 **/vars.yml
 
 .envrc.local
-external/
-mxc-library/
+/external/
+/mxc-library/
 walkthrough.md
