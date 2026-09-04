@@ -15,105 +15,166 @@ At its core,
 - **MXC is deployment configuration primitive schema, from simple standalone applications to cluster and topology aware infrastructures**.
 
 Authors use MXC for:
-- to define and operate multiple private/business K8s lab clusters (as show-cased in this repository)
-- to build community shared catalog https://github.com/epcim/mxc-library of common services (and examples)
-- in enterprise, with extended \#Topology, \#Location, \#Cluster schemas (adapted to private platform) and with custom \#Adapter(s),
-  to deploy and configure complex multi-cluster and multi-location application stacks
-
-
-What it is about. While you can have 200+ helm charts, one day you will have to configure their Values (this si generic example that fits to any physical, cloud infrastructures). Your input values are not just application deployment parameters like "Helm Values". In realitry they comes from multiple domains, ie: Network infrastructure data. Secrets. Destination cloud metadata (AWS, GCP, Azure...). Individual serivces specific ongoing configuration layer. Services needs to cross reference it's service endpoints and share global values. Either you are not running one infrastructure but dev, test, prod and on each you have micro-services deployed in multiple different stacks. On each environment these have different versions. Your artefacts are not just container images, but k8s/docker compose templates, configuration files, CICD pipelines, terraform states and real data assets. Later then monitoring and cataloging all of these.
-
-In 2026 the CICDs evolved into collorfull miriad of options that play well in enterprise. For good in many cases. A major step away from traditional configuration management (Chef, Salt, Ansible, Pulp) for physical and virtual machines did happen tovards declarative, distributed and mainly cloud, but kubernetes based infrastructures is quite visible. Beside all positives that kubernetes brings, the problem of above mentioned configurations was not fully solved.
-
-Tools and priorities were focused on agile development and developer/app friendly workflow. These SRE's and DevOps engineers and architects who had a chance to design and later deploy and operate a 1000+ node production clusters, with hundreds of micro-services, and data pipelines will they prove me right the the situation is not that brigth as it could be.
-
-No this project do not attempt to fix or replace your enterprise portfolio of configuration management. It is much smaller with small ambitions. It's how ever aiming on capabilities, while still distributed and declarative, to ship unified configuration layer. Solid base to generate inputs for you traditional CICD systems at the end of the chain.
-
-Solid for small factor deployments. PoC and inspiration for large-scale. Honestly higligting pros and cons of CUElang used as configuration language.
+- defining and operating multiple private/business K8s lab clusters (as show-cased in this repository)
+- building community shared catalog [`mxc-library`](https://github.com/epcim/mxc-library) of common services (see [Community Stacks](#-mxc-library-collaborative-stack-portfolio--best-practices))
+- enterprise setups, with extended [`#Topology`, `#Location`, `#Cluster`](#-core-schema-mapping--hierarchy-90-of-configurations) schemas (adapted to private platforms) and custom [`#Adapter(s)`](#-multi-engine-adapters--lifecycle-pipeline), to deploy and configure complex multi-cluster and multi-location application stacks
 
 ---
 
-### 🎯 Project Vision & Design Intent: A Flexible Integration Framework
+## Table of Contents
 
-MXC is conceived not as a rigid, all-or-nothing platform to adopt 100%, but as a **design intent and unified integration framework** for modern configuration management.
-
-Adapting and defining MXC for private enterprise platforms, lab environments, or edge deployments is highly valuable on its own. Authors use MXC to wrap around their existing and future tooling ecosystems while remaining consistent, type-safe, and solid in their overall configuration principles:
-
-* **Upstream Tool Schemas**: Rather than replacing lower-level CI/CD or infrastructure tools, MXC directly embeds and implements their native schemas (Kubernetes, Helm, Kustomize, Docker Compose, ArgoCD, Terraform / OpenTofu).
-* **Multi-Domain Synergy**: MXC allows you to combine multiple domain engines seamlessly in a single declarative model — for instance, orchestrating **Helm + Kustomize + Terraform** together to provision AWS infrastructure and deploy workloads cleanly in one pipeline.
-* **External Catalog Integration**: Reference external infrastructure registers (such as **NetBox IPAM / DCIM**) and Microservice catalog backends to dynamically resolve subnets, VIPs, and routing domains at compile time.
-* **AI & MCP Agent Extension**: Designed to integrate smoothly with **Model Context Protocol (MCP)** servers, AI coding assistants (Gemini, AGY CLI, Claude), and automated workflow skills.
-* **Unified Parameters Kernel**: MXC acts as the central integration layer that aggregates all these resources and passes clean, validated parameter artifacts down to downstream CI/CD deployment engines for final execution.
-
-#### 🏛️ Proven Architectural Lineage
-Architecturally, MXC follows the proven lineage of offline hierarchical parameters compilers — similar to how **SaltStack with `reclass`**, **Puppet with `Hiera`**, or **Jsonnet with `qbec`/`tanka`** decoupled centralized parameter hierarchies from execution engines in the past. MXC brings this exact separation-of-concerns pattern into the modern cloud-native, multi-engine, and AI-native era using CUE's mathematical type-safety.
-
-#### 🤝 Open Invitation to Innovate
-We invite interested engineers and teams to adopt MXC for their private setups or collaborate with us to push MXC's core ideas further — improving full compile-time schema validation, transposing configurations across multi-engine targets, packaging OCI modules independently, and elevating declarative configuration management above existing cluster orchestration tools. Join us on MXC and [`mxc-library`](https://github.com/epcim/mxc-library)!
-
----
-
-### 💡 Core Philosophy: Low Learning Curve, Upstream Fidelity & Multi-Target Execution
-
-MXC is designed around six foundational principles: **Zero Steep Learning Curve**, **Direct Upstream Fidelity**, **Multi-Platform Agnosticism**, **AI & LLM-Native Processing**, **Pristine Composable Primitives**, and **OCI-Native Versioning**.
-
-1. **No Steep Learning Curve (Pure Declarative Data)**:
-   - CUE is a strict mathematical superset of JSON and YAML. There are no proprietary programming paradigms, imperative macros, or hidden domain-specific languages (DSLs) to learn.
-   - If you know how to write a Kubernetes manifest, Docker Compose file, or Helm `values.yaml`, you already know how to write MXC configurations.
-
-2. **Direct Upstream Specification Fidelity**:
-   - Rather than inventing artificial, leaky abstractions that get out of date, MXC embeds and directly leverages **native upstream specifications**:
-     - Kubernetes objects and Kustomize JSON patches (`external.#Kustomization`).
-     - Upstream Helm chart `values` schemas validated directly at compile time.
-     - Official Docker Compose specifications (`cue.dev/x/dockercompose`).
-     - Upstream Kubernetes CRDs (Traefik, NetBird, Velero, Cert-Manager).
-
-3. **Multi-Platform Agnosticism (Kubernetes, Docker Compose, Bare-Metal, Cloud)**:
-   - MXC is not exclusive to Kubernetes. The target execution platform (`#Platform`) is pluggable:
-     - ☸️ **Kubernetes (`#PlatformK8s`)**: Kluctl, Helm, Kustomize, ArgoCD, K0rdent.
-     - 🐳 **Docker Compose (`#PlatformCompose`)**: Direct container definitions validated against `cue.dev/x/dockercompose`.
-     - ☁️ **Cloud Infrastructure & IaC (`#PlatformAWS`, `#PlatformK0rdent`, Terraform / OpenTofu)**: Provider credentials, VPCs, and Cluster API deployments.
-     - 🖥️ **Bare-Metal & VMs**: Proxmox hypervisors, Talos OS nodes, and NetBox IPAM integrations.
-
-4. **AI & LLM-Native Processing (Strict Schemas & Early Verification)**:
-   - CUE's strict value types, mathematical lattice constraints, and instant offline evaluation (`cue vet`) make it uniquely suited for AI agents (such as Gemini, Claude, and AGY CLI).
-   - Because CUE performs deterministic compile-time validation, AI agents can confidently execute complex refactors across **adapters**, **configuration bases**, **platform defaults**, and **multi-cluster topologies** with zero risk of silent parameter hallucinations or invalid runtime manifests.
-   - If an agent generates or updates a configuration that violates schema constraints, CUE flags the exact line and type error in milliseconds, enabling the agent to self-correct before any infrastructure code is deployed.
-
-5. **Pristine Primitives & Composable Profiles**:
-   - **Pristine Primitives (`#App`, `#Cluster`, `#Platform`, `#Topology`, `#Location`, `#Adapter`)**: Completely neutral, unopinionated foundation with zero vendor lock-in.
-   - **MXC Reference Profile (`schema/mxc/`)**: A "batteries-included" reference implementation providing pre-composed container facets (`#ImageSpec`, `#PortsSpec`, `#StorageSpec`) and platform defaults (`#PlatformMxc`, `#PlatformMxcLab`). Custom teams can adopt `schema/mxc/` out of the box or define their own corporate profile alongside it.
-
-6. **OCI-Native Packaging Standard & Reference Implementation**:
-   - MXC ships exclusively as the core `MXC` CUE module (`github.com/epcim/mxc`), distributing base schemas, reference adapters, and the `mxc.just` task-runner module as a working reference implementation.
-   - It defines an open OCI packaging and versioning convention. You can consume MXC directly as-is, use it as a foundation to build your own custom schemas and adapters, or contribute your ideas and stack examples back to the community ecosystem.
+- [Problem Statement & Modern Context](#-problem-statement--modern-context)
+  - [The 2026 CI/CD Reality & SRE Challenges](#-the-2026-cicd-reality--sre-challenges)
+  - [MXC's Scope & Ambitions](#-mxcs-scope--ambitions)
+- [Key Architectural Patterns & The Configuration Kernel](#-key-architectural-patterns--the-configuration-kernel)
+  - [Project Vision & Design Intent](#-project-vision--design-intent)
+  - [Core Philosophy](#-core-philosophy)
+- [mxc-library: Collaborative Stack Portfolio & Best Practices](#-mxc-library-collaborative-stack-portfolio--best-practices)
+- [Core Schema Mapping & Hierarchy](#-core-schema-mapping--hierarchy-90-of-configurations)
+- [Multi-Engine Adapters & Lifecycle Pipeline](#-multi-engine-adapters--lifecycle-pipeline)
+- [Core Features & Advanced Capabilities](#-core-features--advanced-capabilities)
+  - [OCI Packaging Specification & The Universal Artifact Plane](#-oci-packaging-specification--the-universal-artifact-plane)
+  - [Dependency Management & Upstream Includes](#-dependency-management--upstream-includes)
+  - [The Hybrid Schema Model](#-the-hybrid-schema-model)
+  - [Upstream Chart & CRD Schema Vendoring](#-upstream-chart--crd-schema-vendoring)
+  - [Pure CUE-Defined Kustomize Overlays](#-pure-cue-defined-kustomize-overlays)
+  - [Scoped Sizing Flavors & Self-Unifying Merges](#-scoped-sizing-flavors--self-unifying-merges)
+  - [Network Topology & IPAM Schema (#WithNetwork)](#-network-topology--ipam-schema-withnetwork)
+  - [Multi-Cluster & Multi-Cloud Fleet Topology](#-multi-cluster--multi-cloud-fleet-topology-topology--location)
+  - [Multi-Adapter Pipelines & Polymorphic Context](#-multi-adapter-pipelines--polymorphic-context)
+- [Quick Start Guide for #ClusterMxc usage for K8s deployments](#-quick-start-guide-for-clustermxc-usage-for-k8s-deployments)
+  - [Architecture & Core Components](#-architecture--core-components)
+  - [Target Deployment Engines](#-target-deployment-engines)
+  - [Usage Instructions & 4-Stage Lifecycle](#-usage-instructions--4-stage-lifecycle)
+- [Example Setup Walkthrough](#-example-setup-walkthrough)
+- [Schema Migrations](#-schema-migrations)
+- [Future-Proof OCI Portability](#-future-proof-oci-portability)
+- [AI Agents & LLM Processing Guide](#-ai-agents--llm-processing-guide)
 
 ---
 
-## 🏛️ Architecture & Core Components
+## 🚨 Problem Statement & Modern Context
+
+While you can have 200+ Helm charts, one day you have to configure their `values` (applicable across physical, cloud, and container infrastructures). Your input values are not just application deployment parameters like "Helm Values" — in reality, they come from multiple domains:
+* **Network Infrastructure Data**: Subnets, VLANs, NetBox IPAM registers, VIP pools (governed by [`#WithNetwork`](#-network-topology--ipam-schema-withnetwork)).
+* **Secrets Management**: Decrypted tokens, certificates, credentials.
+* **Destination Cloud Metadata**: AWS, GCP, Azure, Proxmox provider variables.
+* **Service-Specific Configurations**: Service endpoints, cross-references, and shared global parameters.
+* **Multi-Environment Matrices**: Dev, Test, Prod with microservices deployed across different stacks and version matrices.
+* **Multi-Format Artifacts**: Not just container images, but K8s/Docker Compose templates, config files, CI/CD pipelines, Terraform states, and real data assets.
+
+### ⌛ The 2026 CI/CD Reality & SRE Challenges
+In 2026, CI/CD tools evolved into a colorful myriad of enterprise options. A major shift occurred away from traditional configuration management for physical and virtual machines toward declarative, distributed, cloud-, and Kubernetes-based infrastructures. Beside all positives that Kubernetes brings, the fundamental problem of configuration explosion was not fully solved.
+
+Tools and priorities focused heavily on agile development and developer-friendly workflows. SREs, DevOps engineers, and architects designing, deploying, and operating 1000+ node production clusters with hundreds of microservices and data pipelines face real configuration management challenges at scale.
+
+### 🎯 MXC's Scope & Ambitions
+MXC does not attempt to fix or replace your enterprise portfolio of configuration management. It is much smaller with focused ambitions: providing a **type-safe, distributed, and declarative unified configuration layer** that serves as a solid base to generate inputs for your traditional CI/CD systems at the end of the chain.
+
+It is solid for small-footprint deployments, homelabs, and edge; a PoC and inspiration for large-scale platforms, while honestly highlighting the pros and cons of CUElang as a configuration language. See [Target Deployment Engines](#-target-deployment-engines) and [4-Stage Lifecycle](#-usage-instructions--4-stage-lifecycle) for operational workflows.
+
+---
+
+## 🧬 Key Architectural Patterns & The Configuration Kernel
+
+MXC is built around four core architectural patterns that combine developer intent with platform tool realities:
 
 ```text
-mxc/
-├── module/             # Publishable github.com/epcim/mxc CUE module
-│   ├── cue.mod/        # CUE module metadata
-│   ├── schema/         # Compiler rules (#App, #AppMxc, #Cluster, #Platform, #Topology)
-│   │   ├── platforms/  # Target execution platform schemas (k8s, compose, aws, k0rdent)
-│   │   ├── mxc/        # Consolidated MXC reference profile & facets (#ImageSpec, #KubeSpec, #PlatformMxc)
-│   │   ├── alpha/      # Deployment graph schemas (#TopologyAlpha, #DeployAlpha)
-│   │   └── external/   # Upstream schemas (Kustomize, NetBird, ArgoCD, Kluctl)
-│   └── adapters/       # Kluctl, Helm, Kustomize, ArgoCD and catalog adapters
-├── docs/               # Platform documentation & slideshows
-├── examples/           # Consumer examples, not included in OCI
-└── test/               # Integration tests (including Docker Compose validation)
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│ #Topology (Global Graph)                                                                │
+│                                                                                         │
+│   ┌─────────────────────────────────────────────────────────────────────────────────┐   │
+│   │ #Location (Provider / Region / DC / Zone / Rack / Site / ID | locationRefs)     │   │
+│   │                                                                                 │   │
+│   │   #Platform Defaults (#Platform.k8s, #Platform.argocd, #Platform.compose)        │   │
+│   │   e.g., storageClass: "longhorn", argocd: { project: "infra" }                  │   │
+│   │                                                                                 │   │
+│   │   ┌─────────────────────────────────────────────────────────────────────────┐   │   │
+│   │   │ #Cluster / #Node (Compute Platform Target)                              │   │   │
+│   │   │   Inherits Location Platform Defaults                                   │   │   │
+│   │   │                                                                         │   │   │
+│   │   │   ┌─────────────────────────────────────────────────────────────────┐   │   │   │
+│   │   │   │ #App (Workload Intent)                                          │   │   │   │
+│   │   │   │   Inherits Platform Defaults + Custom App Overrides             │   │   │   │
+│   │   │   └────────────────────────────┬────────────────────────────────────┘   │   │   │
+│   │   └────────────────────────────────┼────────────────────────────────────────┘   │   │
+│   └────────────────────────────────────┼────────────────────────────────────────────┘   │
+└────────────────────────────────────────┼────────────────────────────────────────────────┘
+                                         ▼
+                   UNIFIED CUE CONFIGURATION KERNEL
+                                         │
+                        Evaluated by Adapters (AD-003)
+                                         │
+             ┌───────────────────────────┴───────────────────────────┐
+             ▼                                                       ▼
+  Application Runtime Artifacts                           Deployment CI/CD Pipeline Artifacts
+  • Rendered K8s Manifests / Helm Values                  • Kluctl Targets & Deployment Manifests
+  • docker-compose.yml / Kustomize Overlays               • ArgoCD Application / ApplicationSet CRs
+  • Container ConfigMaps & Secrets                        • Woodpecker / GitHub Actions Pipelines
 ```
 
-### 1. Standalone Mode vs. Library Mode
+### 1. Topology & $N$-to-$N$ Locations Graph Pattern (`locationRefs`)
+Rather than modeling infrastructure as a rigid hierarchy, MXC models global deployments as a graph of `#Location` nodes connected via **$N$-to-$N$ references (`locationRefs`)** (see [Core Schema Mapping](#-core-schema-mapping--hierarchy-90-of-configurations)):
+- A `#Location` represents a physical site, cloud region (AWS `us-east-1`, GCP `europe-west1`), edge host, or network routing domain.
+- Using `locationRefs`, locations link subnets, Transit Gateways, NetBird VPN meshes, and DNS resolvers dynamically across cloud boundaries without hardcoded IP addresses or duplicated routing tables.
 
-#### 🟢 Standalone Mode (`mxc` only)
-Standard configurations compile, validate, and render using **only the files inside this directory**. This ensures the compiler can run offline, in air-gapped environments, or on simple clusters without downloading external library submodules.
+### 2. Hierarchical Parameter Cascades & Independent Package Composition
+Parameters defined higher in the topology hierarchy (`#Topology` ➔ `#Location` ➔ `#Cluster`) **automatically propagate down and cascade to child nodes and `#App` instances**:
+- **Global & Cloud Provider Defaults**: Define platform-wide, cloud, and network metadata once at the `#Location` or `#Cluster` level:
+  - **Cloud & Network Infrastructure**: AWS Account ID, Region Name, Availability Zones (AZs), VPC IDs, and Load Balancer (LB) subnet pools automatically propagate down to IaC modules, ingress controllers, and services.
+  - **`#Platform.k8s`**: Global `storageClass: "longhorn"`, `ingressClass: "traefik"`, `baseDomain: "example.com"`.
+  - **`#Platform.argocd`**: Global `project: "infrastructure"`, `destination.server: "https://kubernetes.default.svc"`, `syncPolicy.automated: { prune: true }`.
+- **Automatic `#App` Inheritance**: All `#App` instances defined under a location or cluster automatically inherit these platform and network parameters, requiring developers to specify only workload-specific overrides (image tag, ports, replicas).
+- **Independent Package & Location Composition**: Users are not restricted to inline definitions. Complete location architectures, cloud provider schemas, or application stack portfolios can be imported directly from **independent external CUE packages or OCI modules** (`import "github.com/company/mxc-aws-us-east-1"` or `import "github.com/epcim/mxc-library/stacks/infra"`). Through CUE's unification (`&`), imported packages seamlessly merge with local environment configurations.
 
-#### 🔵 Library Mode (`mxc` + `mxc-library`)
-For production-grade environments, the optional [`mxc-library` repository](https://github.com/epcim/mxc-library) provides an extensive, modular catalog of pre-configured application stacks. To keep the codebase DRY and maintainable, library adapters use **CUE module-level pass-through aliases** that dynamically import and inherit schemas from `mxc` over standard OCI registry schemas (`github.com/epcim/mxc/...`).
+### 3. 100% Upstream Schema Foundation
+A foundational design choice of MXC is that **all platform schemas are 100% based on official upstream specifications**:
+- `#Platform.k8s` and Kustomize patches embed upstream Kustomize specs (`external.#Kustomization`).
+- `#Platform.argocd` directly embeds official ArgoCD `Application` & `ApplicationSet` CRD schemas.
+- `#Platform.compose` uses official `cue.dev/x/dockercompose.#Schema`.
+- Helm chart values validate against official `values.schema.json` files (see [Upstream Schema Vendoring](#-upstream-chart--crd-schema-vendoring)).
+
+MXC does **not** create artificial DSL wrappers over platform tools. You write native tool properties, protected by compile-time CUE type checking.
+
+### 4. Final Configuration Kernel & Dual Derived Artifacts
+By unifying upstream platform schemas with abstract `#App` workload intent, MXC produces a single, compile-time verified **Final Configuration Kernel** (the evaluated CUE value tree). 
+
+From this unified configuration kernel, MXC [**Adapters**](#-multi-engine-adapters--lifecycle-pipeline) derive two complementary sets of artifacts:
+1. **Application Runtime Artifacts**: Rendered Kubernetes YAML manifests, Helm `values.yaml`, `docker-compose.yml` files, Kustomization overlays, and container config maps.
+2. **Deployment CI/CD Pipeline Artifacts**: Kluctl deployment target descriptors, ArgoCD `Application` / `ApplicationSet` custom resources, Woodpecker / GitHub Actions workflow manifests, and Terraform / OpenTofu variable files.
+
+### 5. Upstream Foundation & Right-Extending Domain Package Drill-Down
+In real-world operations, users are expected to structure their CUE configurations across **distinct organizational package boundaries**:
+- **Upstream Foundation Kernel (`github.com/epcim/mxc`)**: `mxc` serves as the upstream core configuration primitive. It provides the central schema types (`#App`, `#Cluster`, `#Platform`, `#Topology`), base rendering adapters (Kluctl, Kustomize, Docker Compose, ArgoCD), and compilation rules.
+- **Unified Root Domain & Right-Extending Namespaces (e.g. `acme.xc`)**: CUE package namespaces do not use Java-style reverse domains (`com.acme...`); instead, all packages live under a single unified organizational domain (e.g., `acme.xc`) and **extend to the right**:
+  - **Infrastructure & Domain Packages**: `acme.xc.infra.network`, `acme.xc.proj.aws`, `acme.xc.cluster.home-mxc`.
+  - **Subject & Sub-Application Packages**: `acme.xc.apps.payments`, `acme.xc.apps.analytics`, `acme.xc.proj.<stack>`.
+- **Subject & Sub-Application Package Drill-Down**: Workloads are organized into dedicated subject and sub-application packages (`acme.xc.apps.<app>`). Each subject package drills down into specific domain schemas and inherits global location/cluster defaults.
+- **Modular Composition via CUE Imports**: By importing upstream `mxc` primitives and custom organizational packages (`import "github.com/acme/infra/network"` or package unification `package acme.xc.apps.payments`), CUE's unification (`&`) automatically merges top-level platform defaults, network IPAM registers, and sub-application overrides into a single, type-safe compilation target without code duplication.
+
+---
+
+### 🎯 Project Vision & Design Intent
+
+MXC is an open **design intent and unified integration framework** to wrap around existing and future tooling while remaining consistent and type-safe:
+
+* **Upstream Tool Schemas**: Directly implements native schemas (Kubernetes, Helm, Kustomize, Docker Compose, ArgoCD, Terraform; see [The Hybrid Schema Model](#-the-hybrid-schema-model)).
+* **Multi-Domain Operational Synergy**: Processes data across network IPAM, secrets, cloud metadata, and app specs to drive diverse operational procedures — from building software & service catalogs, to preparing Terragrunt `.hcl` data for IaC provisioning, to rendering K8s/Compose manifests.
+* **Precision Projection & Anti-Overload**: Strips unneeded configuration noise and projects only the precise parameters required for a given target, preventing backend controllers, MCP servers, and AI LLMs from being overloaded by excessive context.
+* **External Catalogs & AI/MCP**: Integrates with **NetBox IPAM**, Microservice catalogs, and **Model Context Protocol (MCP)** servers (see [AI Agents Guide](#-ai-agents--llm-processing-guide)).
+* **Proven Architectural Lineage**: Follows the offline parameter compiler pattern of **SaltStack + `reclass`**, **Puppet + `Hiera`**, and **Jsonnet + `qbec`/`tanka`** powered by CUE's compile-time type-safety.
+
+---
+
+### 💡 Core Philosophy
+
+1. **Zero Steep Learning Curve**: Pure declarative CUE data (JSON/YAML superset). No imperative macros or hidden DSLs.
+2. **Direct Upstream Fidelity**: Embeds native specifications directly (Kustomize, Docker Compose `cue.dev/x/`, Helm, CRDs; see [Hybrid Schema Model](#-the-hybrid-schema-model)).
+3. **Multi-Platform Agnosticism**: Pluggable target platforms (`#PlatformK8s`, `#PlatformCompose`, `#PlatformAWS`/Terraform, Bare-Metal/Proxmox/NetBox; see [Target Deployment Engines](#-target-deployment-engines)).
+4. **Trusted Data Foundation for AI & Automation**: Just as modern data processing relies on clean, structured data foundations to prevent "garbage-in, garbage-out" (GIGO), MXC provides a type-safe CUE kernel where strict compile-time validation (`cue vet`) ensures AI agents and CI/CD pipelines operate on verified, hallucination-free configuration data (see [AI Agents Guide](#-ai-agents--llm-processing-guide)).
+5. **Context Trimming & Precision Delivery**: Strips configuration noise to deliver only the minimal parameters needed for specific target engines, Terragrunt `.hcl` modules, software catalogs, or MCP/AI agent context windows.
+6. **Pristine Primitives & Profiles**: Neutral primitives ([`#App`, `#Cluster`, `#Platform`, `#Topology`](#-core-schema-mapping--hierarchy-90-of-configurations)) paired with an optional reference profile (`schema/mxc/`).
+7. **OCI-Native Universal Artifact Standard**: Positions configurations as first-class OCI artifacts (`github.com/epcim/mxc`), unifying CUE configuration modules in central enterprise registries alongside container images, AI/LLM models, Helm charts, and schemas (see [OCI Packaging Specification](#-oci-packaging-specification--the-universal-artifact-plane)).
 
 ---
 
@@ -177,116 +238,6 @@ MXC uses the **Selective Validation Pattern** so schema validation constraints f
     }
 }
 ```
-
----
-
-## 🌐 Target Deployment Engines
-
-MXC separates the abstract logical definition of a workload from the physical engine that executes it. Target platforms are defined via `#Platform`:
-
-```text
-                                  ┌────────────────────────┐
-                                  │   #App / #AppMxc       │
-                                  │  Abstract Workload Spec│
-                                  └───────────┬────────────┘
-                                              │
-                                   Evaluated by Platform
-                                              │
-             ┌────────────────────────────────┼────────────────────────────────┐
-             ▼                                ▼                                ▼
-   ┌──────────────────┐             ┌──────────────────┐             ┌──────────────────┐
-   │   #PlatformK8s   │             │ #PlatformCompose │             │   #PlatformAWS   │
-   │  Kubernetes      │             │  Docker Compose  │             │   Cloud / IaC    │
-   └─────────┬────────┘             └─────────┬────────┘             └─────────┬────────┘
-             │                                │                                │
-     Kluctl / Helm /                  docker-compose.yml              Terraform / OpenTofu
-     Kustomize / ArgoCD              Validated via cue.dev           Variable Maps & State
-```
-
-### Supported Runtime Targets
-
-1. ☸️ **Kubernetes (`#PlatformK8s`)**:
-   - Generates production manifests for Kluctl, Helm, Kustomize, ArgoCD, or Mirantis K0rdent.
-   - Enforces storage classes, ingress classes, network policies, and rollout restart cronjobs natively.
-
-2. 🐳 **Docker Compose (`#PlatformCompose`)**:
-   - Target standalone hosts, edge instances, or local containerized development environments.
-   - Defined in `schema/platforms/compose.cue` (`#PlatformCompose`) and validated directly against the official `cue.dev/x/dockercompose` schema during `just mxc::validate`.
-   - Exports clean, production-ready `docker-compose.yml` manifests.
-
-3. ☁️ **Cloud Infrastructure & IaC (`#PlatformAWS`, `#PlatformK0rdent`)**:
-   - Generates input variable maps for Terraform / OpenTofu, Cluster API, and AWS VPC/EKS deployments.
-
-4. 🖥️ **Bare-Metal & Virtual Machines**:
-   - Generates hypervisor configs for Proxmox and node bootstrap specs for Talos OS, backed by NetBox IPAM data.
-
----
-
-## 🧬 Key Architectural Patterns & The Configuration Kernel
-
-MXC is built around four core architectural patterns that combine developer intent with platform tool realities:
-
-```text
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│ #Topology (Global Graph)                                                        │
-│                                                                                 │
-│   ┌─────────────────────────────────────────────────────────────────────────┐   │
-│   │ #Location (N-to-N Peerings via locationRefs)                            │   │
-│   │                                                                         │   │
-│   │   #Platform Defaults (#Platform.k8s, #Platform.argocd, #Platform.compose)│   │
-│   │   e.g., storageClass: "longhorn", argocd: { project: "infra" }          │   │
-│   │                                                                         │   │
-│   │   ┌─────────────────────────────────────────────────────────────────┐   │   │
-│   │   │ #Cluster / #Node (Compute Platform Target)                      │   │   │
-│   │   │   Inherits Location Platform Defaults                           │   │   │
-│   │   │                                                                 │   │   │
-│   │   │   ┌─────────────────────────────────────────────────────────┐   │   │   │
-│   │   │   │ #App (Workload Intent)                                  │   │   │   │
-│   │   │   │   Inherits Platform Defaults + Custom App Overrides     │   │   │   │
-│   │   │   └────────────────────────────┬────────────────────────────┘   │   │   │
-│   │   └────────────────────────────────┼────────────────────────────────┘   │   │
-│   └────────────────────────────────────┼────────────────────────────────────┘   │
-└────────────────────────────────────────┼────────────────────────────────────────┘
-                                         ▼
-                   UNIFIED CUE CONFIGURATION KERNEL
-                                         │
-                        Evaluated by Adapters (AD-003)
-                                         │
-             ┌───────────────────────────┴───────────────────────────┐
-             ▼                                                       ▼
-  Application Runtime Artifacts                           Deployment CI/CD Pipeline Artifacts
-  • Rendered K8s Manifests / Helm Values                  • Kluctl Targets & Deployment Manifests
-  • docker-compose.yml / Kustomize Overlays               • ArgoCD Application / ApplicationSet CRs
-  • Container ConfigMaps & Secrets                        • Woodpecker / GitHub Actions Pipelines
-```
-
-### 1. Topology & $N$-to-$N$ Locations Graph Pattern (`locationRefs`)
-Rather than modeling infrastructure as a rigid hierarchy, MXC models global deployments as a graph of `#Location` nodes connected via **$N$-to-$N$ references (`locationRefs`)**:
-- A `#Location` represents a physical site, cloud region (AWS `us-east-1`, GCP `europe-west1`), edge host, or network routing domain.
-- Using `locationRefs`, locations link subnets, Transit Gateways, NetBird VPN meshes, and DNS resolvers dynamically across cloud boundaries without hardcoded IP addresses or duplicated routing tables.
-
-### 2. Hierarchical Platform Parameter Cascade (`#Platform` & Tool Defaults)
-Platform tool configurations (`#Platform.k8s`, `#Platform.argocd`, `#Platform.compose`, `#Platform.k0rdent`, or custom platform schemas) are defined at the **Global / Location / Cluster** level and **cascade hierarchically down to `#App` instances**:
-- **Location & Cluster Defaults**: Define platform-wide defaults once at the `#Location` or `#Cluster` level:
-  - **`#Platform.k8s`**: Global `storageClass: "longhorn"`, `ingressClass: "traefik"`, `baseDomain: "example.com"`.
-  - **`#Platform.argocd`**: Global `project: "infrastructure"`, `destination.server: "https://kubernetes.default.svc"`, `syncPolicy.automated: { prune: true }`.
-- **Automatic `#App` Propagation**: All `#App` instances defined under that location automatically inherit these platform defaults, requiring developers to specify only app-specific parameters (image tag, ports, replicas).
-
-### 3. 100% Upstream Schema Foundation
-A foundational design choice of MXC is that **all platform schemas are 100% based on official upstream specifications**:
-- `#Platform.k8s` and Kustomize patches embed upstream Kustomize specs (`external.#Kustomization`).
-- `#Platform.argocd` directly embeds official ArgoCD `Application` & `ApplicationSet` CRD schemas.
-- `#Platform.compose` uses official `cue.dev/x/dockercompose.#Schema`.
-- Helm chart values validate against official `values.schema.json` files.
-
-MXC does **not** create artificial DSL wrappers over platform tools. You write native tool properties, protected by compile-time CUE type checking.
-
-### 4. Final Configuration Kernel & Dual Derived Artifacts
-By unifying upstream platform schemas with abstract `#App` workload intent, MXC produces a single, mathematically verified **Final Configuration Kernel** (the evaluated CUE value tree). 
-
-From this unified configuration kernel, MXC **Adapters** derive two complementary sets of artifacts:
-1. **Application Runtime Artifacts**: Rendered Kubernetes YAML manifests, Helm `values.yaml`, `docker-compose.yml` files, Kustomization overlays, and container config maps.
-2. **Deployment CI/CD Pipeline Artifacts**: Kluctl deployment target descriptors, ArgoCD `Application` / `ApplicationSet` custom resources, Woodpecker / GitHub Actions workflow manifests, and Terraform / OpenTofu variable files.
 
 ---
 
@@ -376,7 +327,7 @@ For Transit Gateways, DirectConnects, NetBird VPN meshes, and cross-region inter
 
 ## 🔌 Multi-Engine Adapters & Lifecycle Pipeline
 
-Adapters transform evaluated MXC parameters into native input formats for your target execution tool:
+Adapters transform evaluated MXC parameters into native input formats for your target execution tool (see [Target Deployment Engines](#-target-deployment-engines) and [4-Stage Lifecycle Pipeline](#4-stage-lifecycle-pipeline)):
 
 ```text
                       ┌────────────────────────────────────────┐
@@ -404,7 +355,21 @@ Adapters transform evaluated MXC parameters into native input formats for your t
 
 ## ✨ Core Features & Advanced Capabilities
 
-### 📦 OCI Packaging Specification & Reference Implementation
+### 📦 OCI Packaging Specification & The Universal Artifact Plane
+
+#### 🌐 Why OCI Fits Modern Infrastructure Architecture
+Modern enterprise platforms converge on **OCI Registries & Artifactory repositories** as the single universal storage, versioning, and distribution plane for all digital assets across infrastructure:
+* 📦 **Container Images & Pod Specs**
+* 🧠 **LLM Models & AI Weights** (vLLM, Ollama layers)
+* 📊 **Data Artifacts & Learned Datasets**
+* ⚙️ **CUE / MXC Configuration Modules & Stacks** (`github.com/epcim/mxc`, `mxc-library`)
+* ⛵ **Helm Charts & Kustomize Packages**
+* 📜 **OpenAPI / JSON Schemas & CRD Specifications**
+* 📚 **Software Library Artifacts & Language Modules**
+
+By publishing configurations as versioned CUE OCI modules, MXC treats configuration code as first-class versioned artifacts alongside container images, AI models, and Helm charts — turning central artifact registries into the single source of truth for modern platform engineering.
+
+#### 🛠️ MXC Reference Module & Packaging Standard
 MXC is published as a versioned, standard CUE OCI module (`github.com/epcim/mxc`) hosted on GHCR (`ghcr.io/epcim/mxc`). 
 
 MXC ships the core compiler engine, base schemas, platform adapters, and `mxc.just` task runner as a **working reference implementation and open packaging specification**:
@@ -488,6 +453,75 @@ Ensure you have the following installed on your developer machine:
 * [CUE Compiler](https://cuelang.org/) (v0.11.0+)
 * [Just Task Runner](https://github.com/casey/just)
 * [yq](https://github.com/mikefarah/yq) & [jq](https://github.com/jqlang/jq)
+
+---
+
+## 🏛️ Architecture & Core Components
+
+```text
+mxc/
+├── module/             # Publishable github.com/epcim/mxc CUE module
+│   ├── cue.mod/        # CUE module metadata
+│   ├── schema/         # Compiler rules (#App, #AppMxc, #Cluster, #Platform, #Topology)
+│   │   ├── platforms/  # Target execution platform schemas (k8s, compose, aws, k0rdent)
+│   │   ├── mxc/        # Consolidated MXC reference profile & facets (#ImageSpec, #KubeSpec, #PlatformMxc)
+│   │   ├── alpha/      # Deployment graph schemas (#TopologyAlpha, #DeployAlpha)
+│   │   └── external/   # Upstream schemas (Kustomize, NetBird, ArgoCD, Kluctl)
+│   └── adapters/       # Kluctl, Helm, Kustomize, ArgoCD and catalog adapters
+├── docs/               # Platform documentation & slideshows
+├── examples/           # Consumer examples, not included in OCI
+└── test/               # Integration tests (including Docker Compose validation)
+```
+
+### Standalone Mode vs. Library Mode
+
+#### 🟢 Standalone Mode (`mxc` only)
+Standard configurations compile, validate, and render using **only the files inside this directory**. This ensures the compiler can run offline, in air-gapped environments, or on simple clusters without downloading external library submodules.
+
+#### 🔵 Library Mode (`mxc` + `mxc-library`)
+For production-grade environments, the optional [`mxc-library` repository](https://github.com/epcim/mxc-library) provides an extensive, modular catalog of pre-configured application stacks. To keep the codebase DRY and maintainable, library adapters use **CUE module-level pass-through aliases** that dynamically import and inherit schemas from `mxc` over standard OCI registry schemas (`github.com/epcim/mxc/...`).
+
+---
+
+## 🌐 Target Deployment Engines
+
+MXC separates the abstract logical definition of a workload from the physical engine that executes it. Target platforms are defined via `#Platform`:
+
+```text
+                                  ┌────────────────────────┐
+                                  │   #App / #AppMxc       │
+                                  │  Abstract Workload Spec│
+                                  └───────────┬────────────┘
+                                              │
+                                   Evaluated by Platform
+                                              │
+             ┌────────────────────────────────┼────────────────────────────────┐
+             ▼                                ▼                                ▼
+   ┌──────────────────┐             ┌──────────────────┐             ┌──────────────────┐
+   │   #PlatformK8s   │             │ #PlatformCompose │             │   #PlatformAWS   │
+   │  Kubernetes      │             │  Docker Compose  │             │   Cloud / IaC    │
+   └─────────┬────────┘             └─────────┬────────┘             └─────────┬────────┘
+             │                                │                                │
+     Kluctl / Helm /                  docker-compose.yml              Terraform / OpenTofu
+     Kustomize / ArgoCD              Validated via cue.dev           Variable Maps & State
+```
+
+### Supported Runtime Targets
+
+1. ☸️ **Kubernetes (`#PlatformK8s`)**:
+   - Generates production manifests for Kluctl, Helm, Kustomize, ArgoCD, or Mirantis K0rdent.
+   - Enforces storage classes, ingress classes, network policies, and rollout restart cronjobs natively.
+
+2. 🐳 **Docker Compose (`#PlatformCompose`)**:
+   - Target standalone hosts, edge instances, or local containerized development environments.
+   - Defined in `schema/platforms/compose.cue` (`#PlatformCompose`) and validated directly against the official `cue.dev/x/dockercompose` schema during `just mxc::validate`.
+   - Exports clean, production-ready `docker-compose.yml` manifests.
+
+3. ☁️ **Cloud Infrastructure & IaC (`#PlatformAWS`, `#PlatformK0rdent`)**:
+   - Generates input variable maps for Terraform / OpenTofu, Cluster API, and AWS VPC/EKS deployments.
+
+4. 🖥️ **Bare-Metal & Virtual Machines**:
+   - Generates hypervisor configs for Proxmox and node bootstrap specs for Talos OS, backed by NetBox IPAM data.
 
 ---
 
@@ -719,29 +753,35 @@ dry-run, publication, and clean-consumer workflow.
 ### 💡 Compressed Core Facts for AI Agents
 
 1. **What MXC Is**:
-   An offline parameters compiler that unifies abstract developer workload intent (`#App`), multi-cluster topologies (`#Topology`, `#Location`), and platform capabilities (`#Platform`, `#Cluster`) into a single CUE configuration kernel, from which adapters derive **Application Runtime Artifacts** (YAML, Compose, values) and **Deployment CI/CD Pipeline Artifacts**.
+   An offline parameters compiler that unifies abstract developer workload intent (`#App`), multi-cluster topologies (`#Topology`, `#Location`), and platform capabilities (`#Platform`, `#Cluster`) into a single CUE configuration kernel, from which adapters derive **Application Runtime Artifacts** (YAML, Compose, values) and **Deployment CI/CD Pipeline Artifacts** (see [Final Configuration Kernel](#4-final-configuration-kernel--dual-derived-artifacts)).
 
 2. **Hierarchical Topology Architecture**:
-   `#Topology` (Root Graph) ➔ `#Location` ($N$-to-$N$ Network Peers) ➔ `#Cluster` (Compute Target Platform) ➔ `#App` / `#AppMxc` (Workload Specification).
+   `#Topology` (Root Graph) ➔ `#Location` ($N$-to-$N$ Network Peers) ➔ `#Cluster` (Compute Target Platform) ➔ `#App` / `#AppMxc` (Workload Specification; see [Core Schema Mapping](#-core-schema-mapping--hierarchy-90-of-configurations)).
 
 3. **100% Upstream Schema Foundation**:
-   MXC never invents leaky DSL wrappers. It embeds native upstream specifications directly:
+   MXC never invents leaky DSL wrappers. It embeds native upstream specifications directly (see [The Hybrid Schema Model](#-the-hybrid-schema-model)):
    - Kustomize `#Kustomization` in `schema/external/kustomize.cue`.
    - Official Docker Compose specification in `cue.dev/x/dockercompose`.
-   - Upstream Helm values schemas & Kubernetes CRDs (Traefik, NetBird, Velero, Cert-Manager).
+   - Upstream Helm values schemas & Kubernetes CRDs (Traefik, NetBird, Velero, Cert-Manager; see [Upstream Schema Vendoring](#-upstream-chart--crd-schema-vendoring)).
 
 4. **Multi-Platform Target Agnosticism**:
-   Targets Kubernetes (`#PlatformK8s`), Docker Compose (`#PlatformCompose`), Cloud IaC (`#PlatformAWS` / Terraform), and Bare-Metal / Edge hosts (Proxmox, Talos OS, NetBox IPAM).
+   Targets Kubernetes (`#PlatformK8s`), Docker Compose (`#PlatformCompose`), Cloud IaC (`#PlatformAWS` / Terraform), and Bare-Metal / Edge hosts (Proxmox, Talos OS, NetBox IPAM; see [Target Deployment Engines](#-target-deployment-engines)).
 
-5. **`mxc-library` Integration**:
-   A collaborative community portfolio (`github.com/epcim/mxc-library`) of pre-configured, reusable workload stacks (`stacks/infra/`, `stacks/cicd/`, `stacks/networking/`, `stacks/ai/`, `stacks/media/`, `stacks/game/`). Can be combined with private corporate stack libraries via CUE unification (`&`).
+5. **Precision Projection & Anti-Overload**:
+   Strips unneeded configuration noise and projects only the precise subset of parameters required for a target engine, Terragrunt `.hcl` data model, software catalog, or AI/MCP context window — preventing context bloat.
 
-6. **OCI-Native Packaging Standard**:
-   MXC ships base schemas, adapters, and `mxc.just` as a reference CUE OCI module (`github.com/epcim/mxc`). It defines an open packaging standard for teams to version and distribute their own custom CUE stack libraries over standard OCI registries.
+6. **`mxc-library` Integration**:
+   A collaborative community portfolio (`github.com/epcim/mxc-library`) of pre-configured, reusable workload stacks (`stacks/infra/`, `stacks/cicd/`, `stacks/networking/`, `stacks/ai/`, `stacks/media/`, `stacks/game/`). Can be combined with private corporate stack libraries via CUE unification (`&`; see [`mxc-library` Portfolio](#-mxc-library-collaborative-stack-portfolio--best-practices)).
 
-7. **Agent Operational Rules**:
+7. **OCI-Native Packaging Standard**:
+   MXC ships base schemas, adapters, and `mxc.just` as a reference CUE OCI module (`github.com/epcim/mxc`). It defines an open packaging standard for teams to version and distribute their own custom CUE stack libraries over standard OCI registries (see [OCI Packaging Specification](#-oci-packaging-specification--the-universal-artifact-plane)).
+
+8. **Upstream Foundation & Right-Extending Package Drill-Down**:
+   Users consume `github.com/epcim/mxc` as the upstream core primitive, while defining their own organizational packages under a unified root domain extending to the right (e.g. `acme.xc.infra.network`, `acme.xc.proj.<stack>`, `acme.xc.apps.<app>`). Through CUE imports, sub-application packages drill down into domain schemas and inherit location/cluster defaults automatically (see [Upstream Foundation & Right-Extending Package Drill-Down](#5-upstream-foundation--right-extending-domain-package-drill-down)).
+
+9. **Agent Operational Rules**:
    - **Never run raw shell hacks**. Always use parameterizable `just` task commands:
      - `just mxc::validate [TARGET]` - Validates all schemas & parameters against CUE constraints.
-     - `just mxc::export [TARGET]` - Compiles & exports flat parameters (`vars.yml`) to stdout.
+     - `just mxc::export [TARGET]` - Compiles & exports flat parameters (`vars.yml`) to stdout (see [4-Stage Lifecycle](#4-stage-lifecycle-pipeline)).
      - `just mxc::build [TARGET]` - Offline renders manifests into `.build/`.
    - **Never manually edit `vars.yml`**. Always modify CUE input files (`.cue` sheets or schemas) and regenerate output.
